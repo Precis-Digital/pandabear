@@ -1,7 +1,14 @@
 import pandas as pd
 import pytest
 
-from src.pandabear import DataFrame, DataFrameModel, Field, check_types
+from src.pandabear import (
+    DataFrame,
+    DataFrameModel,
+    Field,
+    Series,
+    SeriesModel,
+    check_types,
+)
 
 
 # Define a custom dataframe schema
@@ -11,8 +18,12 @@ class MySchema(DataFrameModel):
     column_c: float = Field(ge=0.0, le=1.0)
     my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
 
+# Define a custom series schema
+class MySeries(SeriesModel):
+    value: int = Field(gt=0, lt=10)
 
-# Define an example dataframe that follows this schema
+
+# Define an example dataframe that follows the dataframe schema
 df = pd.DataFrame(
     dict(
         column_a=[1, 2, 3],
@@ -26,14 +37,23 @@ df = pd.DataFrame(
 
 @pytest.mark.check_types
 class TestCheckTypes:
-    def test_base_case(self):
-        """Test that the base case works."""
+    def test_base_case_dataframe(self):
+        """Test that the base case works for dataframes."""
 
         @check_types
         def my_function(df: DataFrame[MySchema]) -> DataFrame[MySchema]:
             return df
 
         my_function(df)
+
+    def test_base_case_series(self):
+        """Test that the base case works for series."""
+
+        @check_types
+        def my_function(se: Series[MySeries]) -> Series[MySeries]:
+            return se
+
+        my_function(df.column_a)
 
     def test_base_case_with_beartype(self):
         """Test that the base case works with beartype."""
