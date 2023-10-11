@@ -1,6 +1,6 @@
 # pandabear
 
-An runtime vschema validator for Pandas DataFrames.
+An runtime schema validator for Pandas DataFrames.
 
 
 ### Prerequisites

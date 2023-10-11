@@ -19,3 +19,7 @@ coverage-badge==1.1.0
 
 # https://github.com/microsoft/vscode-python/issues/12949
 setuptools>=56.0.0
+
+# Logic dependencies
+pandas>=2.1.1
+beartype>=0.16.2
