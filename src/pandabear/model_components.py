@@ -15,6 +15,7 @@ CHECK_NAME_FUNCTION_MAP = {
     "null": lambda se, v: se.isnull().all(),
 }
 
+
 @dataclasses.dataclass
 class Field:
     typ: Any = None
