@@ -1,7 +1,7 @@
 import inspect
 from functools import wraps
-from typing import Any, Callable, get_args
 from types import UnionType
+from typing import Any, Callable, get_args
 
 import pandas as pd
 

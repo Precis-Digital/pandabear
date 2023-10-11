@@ -23,6 +23,7 @@ class MySchema(DataFrameModel):
 class MySeries(SeriesModel):
     value: int = Field(gt=0, lt=2)
 
+
 class MySeries2(SeriesModel):
     value: int = Field(gt=2, lt=2)
 
