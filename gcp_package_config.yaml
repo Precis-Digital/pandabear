@@ -1,0 +1,5 @@
+# Configuration values for where the package is published to
+GCP_PROJECT: precis-artifacts
+GCP_REGION: europe-west1
+AR_REPO: pd-core
+PACKAGE_NAME: pandabear

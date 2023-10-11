@@ -1,0 +1,19 @@
+# Create GitHub Build Trigger
+# https://cloud.google.com/sdk/gcloud/reference/beta/builds/triggers/create/github
+# https://cloud.google.com/config-connector/docs/reference/resource-docs/cloudbuild/cloudbuildtrigger
+# branch-pattern flag supports regex, can also use tag-pattern, or pull-request-pattern
+
+description: pandabear Dev Build Trigger
+filename: "./cloudbuild/cloudbuild_test.yaml"
+github:
+  name: pandabear
+  owner: Precis-Digital
+  pullRequest:
+    branch: ^master|main$
+    commentControl: COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY
+ignoredFiles:
+- "**/*.md"
+includedFiles:
+- "**"
+name: pandabear-pull-request-to-master
+includeBuildLogs: "INCLUDE_BUILD_LOGS_WITH_STATUS"

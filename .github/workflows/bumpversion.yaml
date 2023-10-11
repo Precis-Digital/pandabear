@@ -1,0 +1,37 @@
+name: Bump version
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  bump_version:
+    if: "!startsWith(github.event.head_commit.message, 'bump:')"
+    runs-on: ubuntu-latest
+    name: "Bump version and create changelog with commitizen"
+    steps:
+      - id: get-github-app-token
+        name: Get GitHub App Token
+        uses: getsentry/action-github-app-token@v2.0.0
+        with:
+          app_id: ${{ secrets.ORG_AUTOMATOR_ID }}
+          private_key: ${{ secrets.ORG_AUTOMATOR_KEY }}
+
+      - id: check-out
+        name: Check out
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: "${{ steps.get-github-app-token.outputs.token }}"
+
+      - id: cz
+        name: Bump and changelog using commitizen
+        uses: commitizen-tools/commitizen-action@0.16.3
+        with:
+          github_token: ${{ steps.get-github-app-token.outputs.token }}
+
+      - id: print-version
+        name: Print Version
+        run: echo "Bumped to version ${{ steps.cz.outputs.version }}"

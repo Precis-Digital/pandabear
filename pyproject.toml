@@ -1,0 +1,69 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+force-exclude = '''
+/(
+  | pd_core
+  | scripts
+)\
+'''
+
+[tool.isort]
+atomic = "True"
+profile = "black"
+skip_glob = ["pd_core*", "scripts*"]
+
+# Added -n= for pytest concurrency with pytest-xdist plugin
+[tool.pytest.ini_options]
+addopts = "--maxfail=2 --verbose --cov=."
+testpaths = [
+    "tests"
+]
+
+# Omit /builder/* so Coverage doesn't evaluate all installed packages when running on Cloud Build, etc.
+[tool.coverage.run]
+omit = [
+    "/builder/*",
+    "tests/*",
+    "venv/*",
+    "pd_core/*",
+    "base.py",
+    "cli/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 0
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.0"
+version_files = [
+    "src/pandabear/__init__.py:__version__"
+]
+update_changelog_on_bump = true
+annotated_tag = true
+tag_format = "v$major.$minor.$patch$prerelease"
+allow_abort = true
