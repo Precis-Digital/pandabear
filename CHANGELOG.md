@@ -1,3 +1,10 @@
+## v0.2.1 (2023-10-11)
+
+### Fix
+
+- isort
+- **fix-output-validation**: added a recursive output validation check
+
 ## v0.2.0 (2023-10-11)
 
 ### Feat
