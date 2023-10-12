@@ -1,3 +1,9 @@
+## v0.2.4 (2023-10-12)
+
+### Refactor
+
+- **tests**: Refactor tests to split test classes on success/failure and dataframe/series
+
 ## v0.2.3 (2023-10-12)
 
 ### Fix
