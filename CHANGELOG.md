@@ -1,3 +1,13 @@
+## v0.2.3 (2023-10-12)
+
+### Fix
+
+- `check_types` did not work for many use cases. This commit greatly simplifies how it works: now uses recursive function to check inputs at arbitrary depth, both in input and output
+
+### Refactor
+
+- **BaseModel-and-children**: Move `_validate_series` to BaseModel parent class
+
 ## v0.2.2 (2023-10-12)
 
 ### Fix
