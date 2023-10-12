@@ -1,14 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.pandabear import (
-    DataFrame,
-    DataFrameModel,
-    Field,
-    Series,
-    SeriesModel,
-    check_types,
-)
+from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
 
 
 # Define a custom dataframe schema
