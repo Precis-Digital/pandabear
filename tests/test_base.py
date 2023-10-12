@@ -14,7 +14,11 @@ class MySchema(DataFrameModel):
 
 # Define a custom series schema
 class MySeries(SeriesModel):
-    value: int = Field(gt=0, lt=10)
+    value: int = Field(gt=0, lt=2)
+
+
+class MySeries2(SeriesModel):
+    value: int = Field(gt=2, lt=2)
 
 
 # Define an example dataframe that follows the dataframe schema
@@ -50,7 +54,7 @@ class TestCheckTypes:
         my_function(df.column_a)
 
     def test_base_case_with_beartype(self):
-        """Test that the base case works with beartype."""
+        """Test that the base case works for dataframes with beartype."""
         from beartype import beartype
 
         @beartype
@@ -59,3 +63,13 @@ class TestCheckTypes:
             return df, val
 
         my_function(df, 1)
+
+    def test_base_case_series_with_beartype(self):
+        """Test that the base case works for series with beartype."""
+        from beartype import beartype
+
+        @check_types
+        def my_function(se: Series[MySeries], val: int) -> tuple[Series[MySeries2], int]:
+            return se, 1
+
+        my_function(df.column_a, 1)
