@@ -2,7 +2,6 @@ import dataclasses
 from typing import Any
 
 
-
 @dataclasses.dataclass
 class Field:
     typ: Any = None

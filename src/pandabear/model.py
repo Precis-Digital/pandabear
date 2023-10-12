@@ -11,6 +11,7 @@ TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
 }
 
+
 @dataclasses.dataclass
 class BaseModel:
     @staticmethod
@@ -24,6 +25,7 @@ class BaseModel:
             if check_value is not None:
                 if not check_func(se, check_value):
                     raise ValueError(f"Column`{se.name}` did not pass check `{check_name} {check_value}`")
+
 
 class DataFrameModel(BaseModel):
     @classmethod
