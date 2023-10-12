@@ -6,7 +6,7 @@ from typing import Any, Callable, get_args
 import pandas as pd
 
 from .model import BaseModel
-from .typing import DataFrame
+from .typing_ import DataFrame
 
 
 def validate_variable_against_type_hint(var: Any, type_hint: Any):

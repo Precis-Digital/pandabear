@@ -33,3 +33,12 @@ class Series(pd.Series, SeriesModel):
         against `MySeries`.
         """
         return pd.Series | typ
+
+
+class Index:
+    @classmethod
+    def __class_getitem__(cls, typ):
+        """Only for "marking" index columns as part of index.
+        """
+        return cls | typ
+
