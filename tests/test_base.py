@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.pandabear import (
+from pandabear import (
     DataFrame,
     DataFrameModel,
     Field,
