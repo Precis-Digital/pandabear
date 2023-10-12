@@ -1,3 +1,9 @@
+## v0.2.2 (2023-10-12)
+
+### Fix
+
+- **fix-import**: import CHECK_NAME_FUNCTION_MAP from pandabear.column_checks, not pandabear.model_components
+
 ## v0.2.1 (2023-10-11)
 
 ### Fix
