@@ -9,7 +9,7 @@ class DataFrame(pd.DataFrame, DataFrameModel):
     @classmethod
     def __class_getitem__(cls, typ: Type[DataFrameModel]):
         """Enable DataFrame[MySchema] syntax in type hints.
-        
+
         Setting `DataFrame[MySchema]` to return `pd.DataFrame | MySchema` allows
         `pandabear` to play nice with other runtime type checkers such as `pydantic`
         and `beartype`. Notice how the `check_types` decorator handles type hints
@@ -18,12 +18,13 @@ class DataFrame(pd.DataFrame, DataFrameModel):
         against `MySchema`.
         """
         return pd.DataFrame | typ
-    
+
+
 class Series(pd.Series, SeriesModel):
     @classmethod
     def __class_getitem__(cls, typ: Type[SeriesModel]):
         """Enable Series[MySeries] syntax in type hints.
-        
+
         Setting e.g. `Series[MySeries]` to return `pd.Series | MySeries` allows
         `pandabear` to play nice with other runtime type checkers such as `pydantic`
         and `beartype`. Notice how the `check_types` decorator handles type hints

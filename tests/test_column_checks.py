@@ -1,17 +1,17 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from pandabear.column_checks import (
-    series_greater_equal,
     series_greater,
-    series_less_equal,
-    series_less,
+    series_greater_equal,
     series_isin,
+    series_less,
+    series_less_equal,
     series_notin,
-    series_str_contains,
-    series_str_startswith,
-    series_str_endswith,
     series_notnull,
+    series_str_contains,
+    series_str_endswith,
+    series_str_startswith,
 )
 
 
@@ -91,4 +91,3 @@ def test_series_notnull():
     assert not series_notnull(pd.Series([1, 2, 3, None]))
     assert not series_notnull(pd.Series([1.0, 2.0, np.nan]))
     assert not series_notnull(pd.Series([pd.NaT, pd.Timestamp("1939-05-27")]))
-

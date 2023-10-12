@@ -4,7 +4,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from pandabear.model_components import CHECK_NAME_FUNCTION_MAP, Field
+from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
+from pandabear.model_components import Field
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),

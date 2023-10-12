@@ -18,11 +18,8 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
         for name, value in bound_args.arguments.items():
             if isinstance(value, pd.DataFrame) or isinstance(value, pd.Series):
                 type_hint = sig.parameters[name].annotation  # if this is e.g. `pd.DataFrame | MySchema`
-                type_hint = get_args(type_hint)              # then this is:  `[pd.DataFrame, MySchema]`
-                if (
-                    len(type_hint) == 2
-                    and issubclass(type_hint[1], BaseModel)
-                ):
+                type_hint = get_args(type_hint)  # then this is:  `[pd.DataFrame, MySchema]`
+                if len(type_hint) == 2 and issubclass(type_hint[1], BaseModel):
                     type_hint[1].validate(value)
 
         # Execute the function

@@ -1,14 +1,7 @@
 import pandas as pd
 import pytest
 
-from pandabear import (
-    DataFrame,
-    DataFrameModel,
-    Field,
-    Series,
-    SeriesModel,
-    check_types,
-)
+from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
 
 
 # Define a custom dataframe schema
@@ -17,6 +10,7 @@ class MySchema(DataFrameModel):
     column_b: str = Field(str_contains="foo")
     column_c: float = Field(ge=0.0, le=1.0)
     my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
+
 
 # Define a custom series schema
 class MySeries(SeriesModel):
