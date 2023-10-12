@@ -1,11 +1,12 @@
 import dataclasses
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
 from pandabear.model_components import Field
+from pandabear.typing_ import Index
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
@@ -99,9 +100,6 @@ class DataFrameModel(BaseModel):
             if set(cls._get_column_names()) != set(df.columns):
                 raise ValueError("DataFrame columns did not match expected columns")
         return df
-
-
-
 
 
 class SeriesModel(BaseModel):
