@@ -39,16 +39,11 @@ df = pd.DataFrame(
     )
 )
 
+se = df.column_a
 
-@pytest.mark.base_case
-class TestBaseCase:
-    # --------------------------- #
-    #        Success cases        #
-    # .. things that should work  #
-    # --------------------------- #
 
-    # For dataframes
-
+@pytest.mark.base_case_success_dataframe
+class TestBaseCasesSuccessDataFrame:
     def test___base_case__success__dataframe__1(self):
         """Test that the base case works for dataframes."""
 
@@ -136,8 +131,9 @@ class TestBaseCase:
 
         my_function(df, 1)
 
-    # For series
 
+@pytest.mark.base_case_success_series
+class TestBaseCasesSuccessSeries:
     def test___base_case__success__series(self):
         """Test that the base case works for series."""
 
@@ -145,7 +141,7 @@ class TestBaseCase:
         def my_function(se: Series[MySeries]) -> Series[MySeries]:
             return se
 
-        my_function(df.column_a)
+        my_function(se)
 
     def test___base_case__success__series__multiple_out(self):
         """Test that the base case works for series."""
@@ -154,7 +150,7 @@ class TestBaseCase:
         def my_function(se: Series[MySeries]) -> tuple[Series[MySeries], Series[MySeries]]:
             return se, se
 
-        my_function(df.column_a)
+        my_function(se)
 
     def test___base_case__success__series__nested_out__1(self):
         """Test that the base case works for series."""
@@ -165,7 +161,7 @@ class TestBaseCase:
         ) -> tuple[Series[MySeries], tuple[Series[MySeries], Series[MySeries]]]:
             return se, (se, se)
 
-        my_function(df.column_a)
+        my_function(se)
 
     def test___base_case__success__series__nested_out__2(self):
         """Test that the base case works for series."""
@@ -176,7 +172,7 @@ class TestBaseCase:
         ) -> tuple[Series[MySeries], tuple[Series[MySeries], tuple[Series[MySeries], Series[MySeries]]]]:
             return se, (se, (se, se))
 
-        my_function(df.column_a)
+        my_function(se)
 
     def test___base_case__success__series__with_beartype(self):
         """Test that the base case works for series with beartype."""
@@ -187,13 +183,11 @@ class TestBaseCase:
         def my_function(se: Series[MySeries], val: int) -> tuple[Series[MySeries], int]:
             return se, 1
 
-        my_function(df.column_a, 1)
+        my_function(se, 1)
 
-    # --------------------------- #
-    #        Failure cases        #
-    # .. things that should break #
-    # --------------------------- #
 
+@pytest.mark.base_case_failure_dataframe
+class TestBaseCaseFailureDataFrame:
     def test___base_case__failure__dataframe__in(self):
         """Test that the base case fails for dataframes, when input is fails."""
         with pytest.raises(ValueError):
@@ -322,3 +316,135 @@ class TestBaseCase:
                 return df, df, df
 
             my_function(df)
+
+
+@pytest.mark.base_case_failure_series
+class TestBaseCaseFailureSeries:
+    def test___base_case__failure__series__in(self):
+        """Test that the base case fails for series, when input is fails."""
+        with pytest.raises(ValueError):
+
+            @check_types
+            def my_function(se: Series[MySeriesFailure]) -> Series[MySeries]:
+                return se
+
+            my_function(se)
+
+    def test___base_case__failure__series__out(self):
+        """Test that the base case fails for series, when output fails."""
+        with pytest.raises(ValueError):
+
+            @check_types
+            def my_function(se: Series[MySeries]) -> Series[MySeriesFailure]:
+                return se
+
+            my_function(se)
+
+    def test___base_case__failure__series__nested__in(self):
+        """Test that the base case fails for series, when input is fails."""
+        with pytest.raises(ValueError):
+
+            @check_types
+            def my_function(
+                se: tuple[Series[MySeries], tuple[Series[MySeries], Series[MySeriesFailure]]]
+            ) -> Series[MySeries]:
+                return se
+
+            my_function([se, [se, se]])
+
+    def test___base_case__failure__series__nested__out(self):
+        """Test that the base case fails for series, when input is fails."""
+        with pytest.raises(ValueError):
+
+            @check_types
+            def my_function(
+                se: Series[MySeries],
+            ) -> tuple[Series[MySeries], tuple[Series[MySeries], Series[MySeriesFailure]]]:
+                return [se, [se, se]]
+
+            my_function(se)
+
+    def test___base_case__failure__series__mismatch_in__1(self):
+        """Test that the base case fails for series, when input type hints do not match argument values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(tup: tuple[Series[MySeries], Series[MySeries]]) -> Series[MySeries]:
+                return tup[0]
+
+            my_function(se)
+
+    def test___base_case__failure__series__mismatch_in__2(self):
+        """Test that the base case fails for series, when input type hints do not match argument values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(se: Series[MySeries]) -> Series[MySeries]:
+                return se
+
+            my_function((se, se))
+
+    def test___base_case__failure__series__mismatch_in__3(self):
+        """Test that the base case fails for series, when input type hints do not match argument values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(tup: tuple[Series[MySeries], Series[MySeries]]) -> Series[MySeries]:
+                return tup[0]
+
+            my_function((se, [se, se]))
+
+    def test___base_case__failure__series__mismatch_in__4(self):
+        """Test that the base case fails for series, when input type hints do not match argument values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(
+                nested_se: tuple[Series[MySeries], tuple[Series[MySeries], Series[MySeries]]]
+            ) -> Series[MySeries]:
+                se, (se1, se2) = nested_se
+                return se
+
+            my_function((se, se, se))
+
+    def test___base_case__failure__series__mismatch_out__1(self):
+        """Test that the base case fails for series, when output type hints do not match return values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(se: Series[MySeries]) -> tuple[Series[MySeries], Series[MySeries]]:
+                return se
+
+            my_function(se)
+
+    def test___base_case__failure__series__mismatch_out__2(self):
+        """Test that the base case fails for series, when output type hints do not match return values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(se: Series[MySeries]) -> Series[MySeries]:
+                return se, se
+
+            my_function(se)
+
+    def test___base_case__failure__series__mismatch_out__3(self):
+        """Test that the base case fails for series, when output type hints do not match return values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(se: Series[MySeries]) -> tuple[Series[MySeries], Series[MySeries]]:
+                return se, [se, se]
+
+            my_function(se)
+
+    def test___base_case__failure__series__mismatch_out__4(self):
+        """Test that the base case fails for series, when output type hints do not match return values."""
+        with pytest.raises(TypeError):
+
+            @check_types
+            def my_function(
+                se: Series[MySeries],
+            ) -> tuple[Series[MySeries], tuple[Series[MySeries], Series[MySeries]]]:
+                return se, se, se
+
+            my_function(se)
