@@ -9,20 +9,27 @@ from .model import BaseModel
 from .typing import DataFrame
 
 
-def validate_return_value(result, return_annotation):
+def validate_variable_against_type_hint(var: Any, type_hint: Any):
+    suggestion = "Check that your type hints and returned values match."
+    # type hint like: `pd.DataFrame | MySchema`
     if (
-        isinstance(return_annotation, UnionType)
-        and len(get_args(return_annotation)) == 2
-        and issubclass(get_args(return_annotation)[1], BaseModel)
+        isinstance(type_hint, UnionType)
+        and len(get_args(type_hint)) == 2
+        and issubclass(get_args(type_hint)[1], BaseModel)
     ):
-        schema = get_args(return_annotation)[1]
-        schema.validate(result)
-    elif len(get_args(return_annotation)) > 1:
-        for result_i, type_hint in zip(result, get_args(return_annotation)):
-            validate_return_value(result_i, type_hint)
-    elif isinstance(return_annotation, tuple):
-        for result_i, type_hint in zip(result, return_annotation):
-            validate_return_value(result_i, type_hint)
+        if not type(var) in [pd.DataFrame, pd.Series]:
+            raise TypeError(f"Expected a pandas dataframe or series, but found {type(var)}. {suggestion}")
+        schema = get_args(type_hint)[1]
+        schema.validate(var)
+
+    # type hint like: `tuple[int, pd.DataFrame | MySchema]` (or deeper nesting)
+    elif (len(return_types := get_args(type_hint))) > 1:
+        if type(var) not in [list, tuple]:
+            raise TypeError(f"Expected an array-like, but found {type(var)}. {suggestion}")
+        elif len(var) != len(return_types):
+            raise TypeError(f"Expected {len(return_types)} values, but found {len(var)}. {suggestion}")
+        for var_i, type_hint_i in zip(var, return_types):
+            validate_variable_against_type_hint(var_i, type_hint_i)
 
 
 def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -33,18 +40,15 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
-        for name, value in bound_args.arguments.items():
-            if isinstance(value, pd.DataFrame) or isinstance(value, pd.Series):
-                type_hint = sig.parameters[name].annotation  # if this is e.g. `pd.DataFrame | MySchema`
-                type_hint = get_args(type_hint)  # then this is:  `[pd.DataFrame, MySchema]`
-                if len(type_hint) == 2 and issubclass(type_hint[1], BaseModel):
-                    type_hint[1].validate(value)
+        for name, variable in bound_args.arguments.items():
+            type_hint = sig.parameters[name].annotation
+            validate_variable_against_type_hint(variable, type_hint)
 
         # Execute the function
         result = func(*args, **kwargs)
 
         # Validate return value(s)
-        validate_return_value(result, sig.return_annotation)
+        validate_variable_against_type_hint(result, sig.return_annotation)
 
         return result
 
