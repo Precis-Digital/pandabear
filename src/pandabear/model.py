@@ -84,9 +84,6 @@ class DataFrameModel(BaseModel):
                 cls._validate_series(series, field, typ)
 
             elif field.alias is not None:
-                for series in cls._select_series_by_alias(df, field):
-
-            if field.alias is not None:
                 for series in cls._select_series_by_alias(df, field.alias, field.regex):
                     cls._validate_series(series, field, typ)
             else:
@@ -138,11 +135,12 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def _validate_multiindex(cls, df):
+
         Config = cls._get_config()
         if Config.multiindex_strict:
-            if not isinstance(df.index, pd.MultiIndex):
-                raise ValueError("Expected MultiIndex")
-            if not set(cls._get_index_names()) == set(list(df.index.names)):
+            if (cls._get_index_names() == []) and (df.index.names == [None]):
+                pass
+            elif not set(cls._get_index_names()) == set(list(df.index.names)):
                 raise ValueError("MultiIndex names did not match expected names")
         if Config.multiindex_ordered:
             if cls._get_index_names() != list(df.index.names):

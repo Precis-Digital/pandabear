@@ -27,10 +27,13 @@ class Field:
 @dataclasses.dataclass
 class BaseConfig:
     strict: bool | str = True
+    ordered: bool = False
     multiindex_strict: bool = True
     multiindex_ordered: bool = False
     multiindex_unique: bool = True
 
     @classmethod
     def _override(cls, other_cls):
+        if other_cls is cls:
+            return cls
         return type('SchemaConfig', (other_cls, cls), {})
