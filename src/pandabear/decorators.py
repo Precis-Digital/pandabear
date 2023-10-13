@@ -5,8 +5,7 @@ from typing import Any, Callable, get_args
 
 import pandas as pd
 
-from .model import BaseModel
-from .typing import DataFrame
+from pandabear.model import BaseModel
 
 
 def validate_variable_against_type_hint(var: Any, type_hint: Any):

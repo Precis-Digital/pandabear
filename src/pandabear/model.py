@@ -6,7 +6,6 @@ import pandas as pd
 
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
 from pandabear.model_components import Field
-from pandabear.utils import flatten_list
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),

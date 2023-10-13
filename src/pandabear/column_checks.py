@@ -1,10 +1,3 @@
-import dataclasses
-from typing import Any
-
-import numpy as np
-import pandas as pd
-
-
 def series_greater_equal(series, value):
     return (series >= value).all()
 

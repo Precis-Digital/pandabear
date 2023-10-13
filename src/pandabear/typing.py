@@ -2,7 +2,7 @@ from typing import Type
 
 import pandas as pd
 
-from .model import DataFrameModel, SeriesModel
+from pandabear.model import DataFrameModel, SeriesModel
 
 
 class DataFrame(pd.DataFrame, DataFrameModel):
