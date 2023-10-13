@@ -1,3 +1,9 @@
+## v0.3.0 (2023-10-13)
+
+### Feat
+
+- Implement custom check functionality in schema definitions
+
 ## v0.2.4 (2023-10-12)
 
 ### Refactor
