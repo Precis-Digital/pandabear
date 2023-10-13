@@ -1,3 +1,9 @@
+## v0.3.1 (2023-10-13)
+
+### Refactor
+
+- Clean up imports
+
 ## v0.3.0 (2023-10-13)
 
 ### Feat
