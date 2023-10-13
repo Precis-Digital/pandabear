@@ -1,8 +1,8 @@
-import pytest
 import pandas as pd
+import pytest
 
-from pandabear.model import DataFrameModel, SeriesModel
 from pandabear.index_type import Index
+from pandabear.model import DataFrameModel, SeriesModel
 from pandabear.model_components import Field
 
 
@@ -25,6 +25,7 @@ class IndexUniqueConfig:
 class NoIndexSchema(DataFrameModel):
     a: int = Field()
     b: float = Field()
+
 
 class IndexSchema(DataFrameModel):
     index: Index[str]
@@ -57,19 +58,13 @@ def test_no_index_schema__passing():
 
 
 def test_no_index_schema__failing():
-    df = pd.DataFrame(
-        dict(a=[1, 2], b=[1.0, 2.0]),
-        index=pd.Index([1, 2], name="index")
-    )
+    df = pd.DataFrame(dict(a=[1, 2], b=[1.0, 2.0]), index=pd.Index([1, 2], name="index"))
     with pytest.raises(ValueError):
         NoIndexSchema._validate_multiindex(df)
 
 
 def test_index_schema__passing():
-    df = pd.DataFrame(
-        dict(a=[1, 2, 3], b=[1.0, 2.0, 3.0]),
-        index=pd.Index([1, 2, 3], name="index")
-    )
+    df = pd.DataFrame(dict(a=[1, 2, 3], b=[1.0, 2.0, 3.0]), index=pd.Index([1, 2, 3], name="index"))
 
     # 1. passes
     IndexSchema._validate_multiindex(df)
@@ -92,10 +87,7 @@ def test_index_schema__passing():
 
 
 def test_index_schema__failing_sorting_unique():
-    df = pd.DataFrame(
-        dict(a=[1, 2, 3, 4], b=[1.0, 2.0, 3.0, 4.0]),
-        index=pd.Index([1, 3, 2, 3], name="index")
-    )
+    df = pd.DataFrame(dict(a=[1, 2, 3, 4], b=[1.0, 2.0, 3.0, 4.0]), index=pd.Index([1, 3, 2, 3], name="index"))
 
     class IndexSchema(DataFrameModel):
         index: Index[str]
@@ -132,7 +124,7 @@ def test_multiindex_schema__passing():
 
     df = pd.DataFrame(
         dict(a=[1, 2, 3, 4], b=[1.0, 2.0, 3.0, 4.0]),
-        index=pd.MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1), (2, 2)], names=["ix0", "ix1"])
+        index=pd.MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1), (2, 2)], names=["ix0", "ix1"]),
     )
 
     # 1. passes
@@ -159,7 +151,7 @@ def test_multiindex_schema__failing():
 
     df = pd.DataFrame(
         dict(a=[1, 2, 3, 4], b=[1.0, 2.0, 3.0, 4.0]),
-        index=pd.MultiIndex.from_tuples([(1, 1), (1, 1), (2, 2), (2, 1)], names=["ix0", "ix1"])
+        index=pd.MultiIndex.from_tuples([(1, 1), (1, 1), (2, 2), (2, 1)], names=["ix0", "ix1"]),
     )
 
     # 1. passes
@@ -188,6 +180,3 @@ def test_multiindex_schema__failing():
     df2 = df.reset_index()
     with pytest.raises(ValueError):
         MultiIndexSchema._validate_multiindex(df2)
-
-
-
