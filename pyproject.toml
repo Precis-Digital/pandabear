@@ -59,7 +59,7 @@ fail_under = 0
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.2.3"
+version = "0.2.4"
 version_files = [
     "src/pandabear/__init__.py:__version__"
 ]
