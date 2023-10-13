@@ -26,11 +26,13 @@ class Field:
 
 @dataclasses.dataclass
 class BaseConfig:
-    strict: bool | str = True
+    strict: bool = True
+    filter: bool = False
     ordered: bool = False
     multiindex_strict: bool = True
     multiindex_ordered: bool = False
-    multiindex_unique: bool = True
+    multiindex_sorted: bool = False
+    multiindex_unique: bool = False
 
     @classmethod
     def _override(cls, other_cls):

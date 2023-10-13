@@ -118,9 +118,10 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def _validate_columns(cls, df):
+
         Config = cls._get_config()
 
-        if Config.strict == "filter":
+        if Config.filter == "filter":
             return df[cls._get_column_names()].copy()
 
         if Config.strict:
@@ -130,6 +131,7 @@ class DataFrameModel(BaseModel):
         if Config.ordered:
             if cls._get_column_names() != list(df.columns):
                 raise ValueError("DataFrame columns did not match expected columns")
+
         return df
 
     @classmethod
@@ -149,8 +151,10 @@ class DataFrameModel(BaseModel):
         if Config.multiindex_ordered:
             if cls._get_index_names() != list(df.index.names):
                 raise ValueError("MultiIndex names did not match expected names")
-            if not df.index.is_lexsorted():
-                raise ValueError("MultiIndex was not lexsorted")
+
+        if Config.multiindex_sorted:
+            if not (df.index.is_monotonic_increasing or df.index.is_monotonic_decreasing):
+                raise ValueError("MultiIndex not sorted")
 
         if Config.multiindex_unique:
             if not df.index.is_unique:
