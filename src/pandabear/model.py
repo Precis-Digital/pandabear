@@ -6,6 +6,7 @@ import pandas as pd
 
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
 from pandabear.model_components import Field
+from pandabear.utils import flatten_list
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
@@ -44,25 +45,46 @@ class DataFrameModel(BaseModel):
         return df[name]
 
     @staticmethod
-    def _select_series_by_alias(df: pd.DataFrame, field: Field) -> list[pd.Series]:
-        if field.regex:
-            return [df[col] for col in df.filter(regex=field.alias, axis=1).columns]
+    def _select_series_by_alias(df: pd.DataFrame, alias: str, regex: bool) -> list[pd.Series]:
+        if regex:
+            return [df[col] for col in df.filter(regex=alias, axis=1).columns]
         else:
-            return [df[field.alias]]
+            return [df[alias]]
 
     @classmethod
     def validate(cls, df: pd.DataFrame):
+        # Validate `Fields`
         name_types = cls._get_names_and_types()
         name_fields = cls._get_fields()
         for name in name_types:
             typ = name_types[name]
             field = name_fields[name]
             if field.alias is not None:
-                for series in cls._select_series_by_alias(df, field):
+                for series in cls._select_series_by_alias(df, field.alias, field.regex):
                     cls._validate_series(series, field, typ)
             else:
                 series = cls._select_series_by_name(df, name)
                 cls._validate_series(series, field, typ)
+
+        # Validate `@check` decorated functions
+        for attr_name in dir(cls):
+            attr = getattr(cls, attr_name)
+            if hasattr(attr, "__check__"):
+                check_columns: list[str] = getattr(attr, "__check__")
+
+                if getattr(attr, "__regex__"):
+                    new_check_columns = []
+                    for column in check_columns:
+                        matched_columns = df.filter(regex=column, axis=1).columns
+                        if len(matched_columns) == 0:
+                            raise ValueError(f"No columns match regex `{column}`")
+                        new_check_columns.extend(matched_columns)
+                    check_columns = new_check_columns
+
+                for column in check_columns:
+                    series = cls._select_series_by_name(df, column)
+                    if not attr(series):
+                        raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
 
 
 class SeriesModel(BaseModel):

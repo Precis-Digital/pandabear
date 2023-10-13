@@ -7,7 +7,7 @@ from logging import NullHandler
 
 logging.getLogger(__name__).addHandler(NullHandler())
 
-from .decorators import check_types
+from .decorators import check, check_types
 from .model import DataFrameModel, SeriesModel
 from .model_components import Field
 from .typing import DataFrame, Series
