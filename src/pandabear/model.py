@@ -15,6 +15,9 @@ TYPE_DTYPE_MAP = {
 @dataclasses.dataclass
 class BaseConfig:
     strict: bool | str = True
+    multiindex_strict: bool = True
+    multiindex_ordered: bool = False
+    multiindex_unique
 
 
 
