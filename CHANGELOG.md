@@ -1,3 +1,9 @@
+## v0.3.2 (2023-10-13)
+
+### Fix
+
+- Rename pandabear.typing -> pandebear.typehints
+
 ## v0.3.1 (2023-10-13)
 
 ### Refactor
