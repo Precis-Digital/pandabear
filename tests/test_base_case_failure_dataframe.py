@@ -1,3 +1,8 @@
+import pytest
+
+from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
+
+
 def test___base_case__failure__dataframe__in():
     """Test that the base case fails for dataframes, when input is fails."""
     with pytest.raises(ValueError):
