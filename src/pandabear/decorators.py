@@ -6,7 +6,6 @@ from typing import Any, Callable, get_args
 import pandas as pd
 
 from pandabear.model import BaseModel
-from pandabear.typing import DataFrame
 
 
 def validate_variable_against_type_hint(var: Any, type_hint: Any):
@@ -53,3 +52,26 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
         return result
 
     return wrapper
+
+
+def check(column_names: str | list[str], regex=False) -> Callable:
+    # Annotate method with check information. This allows the `validate`
+    # method to find check functions and apply them to the correct columns.
+    if isinstance(column_names, str):
+
+        def decorator(method: Callable) -> Callable:
+            method.__setattr__("__check__", [column_names])
+            method.__setattr__("__regex__", regex)
+            return method
+
+    elif isinstance(column_names, list):
+
+        def decorator(method: Callable) -> Callable:
+            method.__setattr__("__check__", column_names)
+            method.__setattr__("__regex__", regex)
+            return method
+
+    else:
+        raise TypeError(f"Expected a `str` or `list[str]`, but found {type(column_names)}")
+
+    return decorator

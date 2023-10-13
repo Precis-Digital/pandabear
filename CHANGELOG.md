@@ -1,3 +1,21 @@
+## v0.3.2 (2023-10-13)
+
+### Fix
+
+- Rename pandabear.typing -> pandebear.typehints
+
+## v0.3.1 (2023-10-13)
+
+### Refactor
+
+- Clean up imports
+
+## v0.3.0 (2023-10-13)
+
+### Feat
+
+- Implement custom check functionality in schema definitions
+
 ## v0.2.4 (2023-10-12)
 
 ### Refactor
