@@ -122,6 +122,8 @@ class DataFrameModel(BaseModel):
         Config = cls._get_config()
 
         if Config.filter == "filter":
+            # order and strict are ignored, order is determined by the order of the columns in the schema
+            # strict is ignored because the column selection will raise an error if the column is not found
             return df[cls._get_column_names()].copy()
 
         if Config.strict:
@@ -129,6 +131,7 @@ class DataFrameModel(BaseModel):
                 raise ValueError("DataFrame columns did not match expected columns")
 
         if Config.ordered:
+            # assumes order imples strict
             if cls._get_column_names() != list(df.columns):
                 raise ValueError("DataFrame columns did not match expected columns")
 
@@ -144,11 +147,16 @@ class DataFrameModel(BaseModel):
             # no index defined in schema, and no index defined in dataframe
             return
 
+        if set(index_names) - set(df.index.names):
+            # all schema index names must be in dataframe index names
+            raise ValueError(f"Index levels {set(index_names) - set(df.index.names)} missing in df")
+
         if Config.multiindex_strict:
-            if not set(cls._get_index_names()) == set(list(df.index.names)):
+            if not set(index_names) == set(list(df.index.names)):
                 raise ValueError("MultiIndex names did not match expected names")
 
         if Config.multiindex_ordered:
+            # assume order implies strict
             if cls._get_index_names() != list(df.index.names):
                 raise ValueError("MultiIndex names did not match expected names")
 
