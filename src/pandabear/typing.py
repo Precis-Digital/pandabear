@@ -2,7 +2,7 @@ from typing import Type
 
 import pandas as pd
 
-from .model import DataFrameModel, SeriesModel
+from pandabear.model import DataFrameModel, SeriesModel
 
 
 class DataFrame(pd.DataFrame, DataFrameModel):
@@ -34,11 +34,4 @@ class Series(pd.Series, SeriesModel):
         """
         return pd.Series | typ
 
-
-class Index:
-    @classmethod
-    def __class_getitem__(cls, typ):
-        """Only for "marking" index columns as part of index.
-        """
-        return cls | typ
 

@@ -5,21 +5,12 @@ import numpy as np
 import pandas as pd
 
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
-from pandabear.model_components import Field
-from pandabear.typing_ import Index
+from pandabear.model_components import Field, BaseConfig
+from pandabear.index_type import check_type_is_index, get_index_dtype
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
 }
-
-@dataclasses.dataclass
-class BaseConfig:
-    strict: bool | str = True
-    multiindex_strict: bool = True
-    multiindex_ordered: bool = False
-    multiindex_unique
-
-
 
 @dataclasses.dataclass
 class BaseModel:
@@ -41,6 +32,11 @@ class BaseModel:
 
 
 class DataFrameModel(BaseModel):
+
+    @classmethod
+    def _get_config(cls):
+        return BaseConfig._override(cls.Config)
+
     @classmethod
     def _get_names_and_types(cls):
         return cls.__annotations__
@@ -93,16 +89,43 @@ class DataFrameModel(BaseModel):
                 series = cls._select_series_by_name(df, name)
                 cls._validate_series(series, field, typ)
 
+        cls._validate_multiindex(df)
+
         return cls._validate_columns(df)
 
     @classmethod
     def _validate_columns(cls, df):
-        if cls.Config.strict == 'filter':
+        Config = cls._get_config()
+
+        if Config.strict == 'filter':
             return df[cls._get_column_names()].copy()
-        elif cls.Config.strict:
+
+        if Config.strict:
             if set(cls._get_column_names()) != set(df.columns):
                 raise ValueError("DataFrame columns did not match expected columns")
+
+        if Config.ordered:
+            if cls._get_column_names() != list(df.columns):
+                raise ValueError("DataFrame columns did not match expected columns")
         return df
+
+    @classmethod
+    def _validate_multiindex(cls, df):
+        Config = cls._get_config()
+        if Config.multiindex_strict:
+            if not isinstance(df.index, pd.MultiIndex):
+                raise ValueError("Expected MultiIndex")
+            if not set(cls._get_index_names()) == set(list(df.index.names)):
+                raise ValueError("MultiIndex names did not match expected names")
+        if Config.multiindex_ordered:
+            if cls._get_index_names() != list(df.index.names):
+                raise ValueError("MultiIndex names did not match expected names")
+            if not df.index.is_lexsorted():
+                raise ValueError("MultiIndex was not lexsorted")
+        if Config.multiindex_unique:
+            if not df.index.is_unique:
+                raise ValueError("MultiIndex was not unique")
+
 
 
 class SeriesModel(BaseModel):
@@ -120,15 +143,3 @@ class SeriesModel(BaseModel):
         _, value_type = cls._get_value_name_and_type()
         field = cls._get_field()
         cls._validate_series(series, field, value_type)
-
-
-def check_type_is_index(t):
-    if hasattr(t, '__args__'):
-        if t.__args__[0] is Index:
-            return True
-    return False
-
-
-def get_index_dtype(t):
-    return t.__args__[1]
-

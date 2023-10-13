@@ -22,3 +22,15 @@ class Field:
     # Column name checks
     alias: str = None
     regex: bool = False
+
+
+@dataclasses.dataclass
+class BaseConfig:
+    strict: bool | str = True
+    multiindex_strict: bool = True
+    multiindex_ordered: bool = False
+    multiindex_unique: bool = True
+
+    @classmethod
+    def _override(cls, other_cls):
+        return type('SchemaConfig', (other_cls, cls), {})
