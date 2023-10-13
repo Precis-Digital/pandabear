@@ -10,4 +10,4 @@ logging.getLogger(__name__).addHandler(NullHandler())
 from pandabear.decorators import check, check_types
 from pandabear.model import DataFrameModel, SeriesModel
 from pandabear.model_components import Field
-from pandabear.typing import DataFrame, Series
+from pandabear.typehints import DataFrame, Series
