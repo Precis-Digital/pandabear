@@ -3,9 +3,11 @@ import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
 
-# define non-strict config
+
+# define non-strict config, for testing
 class NonStrictConfig:
     strict: bool = False
+
 
 # Define a custom dataframe schema
 class MySchema(DataFrameModel):

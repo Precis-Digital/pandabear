@@ -33,5 +33,3 @@ class Series(pd.Series, SeriesModel):
         against `MySeries`.
         """
         return pd.Series | typ
-
-

@@ -5,12 +5,13 @@ import numpy as np
 import pandas as pd
 
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
-from pandabear.model_components import Field, BaseConfig
 from pandabear.index_type import check_type_is_index, get_index_dtype
+from pandabear.model_components import BaseConfig, Field
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
 }
+
 
 @dataclasses.dataclass
 class BaseModel:
@@ -32,7 +33,6 @@ class BaseModel:
 
 
 class DataFrameModel(BaseModel):
-
     @classmethod
     def _get_config(cls):
         return BaseConfig._override(cls.Config)
@@ -116,12 +116,11 @@ class DataFrameModel(BaseModel):
                     if not attr(series):
                         raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
 
-
     @classmethod
     def _validate_columns(cls, df):
         Config = cls._get_config()
 
-        if Config.strict == 'filter':
+        if Config.strict == "filter":
             return df[cls._get_column_names()].copy()
 
         if Config.strict:
@@ -135,22 +134,27 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def _validate_multiindex(cls, df):
+        index_names = cls._get_index_names()
 
         Config = cls._get_config()
+
+        if (index_names == []) and (df.index.names == [None]):
+            # no index defined in schema, and no index defined in dataframe
+            return
+
         if Config.multiindex_strict:
-            if (cls._get_index_names() == []) and (df.index.names == [None]):
-                pass
-            elif not set(cls._get_index_names()) == set(list(df.index.names)):
+            if not set(cls._get_index_names()) == set(list(df.index.names)):
                 raise ValueError("MultiIndex names did not match expected names")
+
         if Config.multiindex_ordered:
             if cls._get_index_names() != list(df.index.names):
                 raise ValueError("MultiIndex names did not match expected names")
             if not df.index.is_lexsorted():
                 raise ValueError("MultiIndex was not lexsorted")
+
         if Config.multiindex_unique:
             if not df.index.is_unique:
                 raise ValueError("MultiIndex was not unique")
-
 
 
 class SeriesModel(BaseModel):

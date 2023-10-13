@@ -36,4 +36,4 @@ class BaseConfig:
     def _override(cls, other_cls):
         if other_cls is cls:
             return cls
-        return type('SchemaConfig', (other_cls, cls), {})
+        return type("SchemaConfig", (other_cls, cls), {})
