@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from pandabear.model import DataFrameModel, SeriesModel
+from pandabear.model_components import Field
 
 
 def test_strict_filter_ordered_columns():
@@ -9,9 +10,9 @@ def test_strict_filter_ordered_columns():
         filter: bool = True
 
     class MySchema(DataFrameModel):
-        a: int
-        b: float
-        c: str
+        a: int = Field()
+        b: float = Field()
+        c: str = Field()
         Config = FilterConfig
 
     # 1. passes, with a,b,c and not d present.

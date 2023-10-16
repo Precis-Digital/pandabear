@@ -24,7 +24,7 @@ class BaseModel:
 
         if se.dtype != dtype:
             if cls.Config.coerce:
-                se = se.astype(dtype)
+                se = se.astype(typ)
             else:
                 raise TypeError(f"Expected `{se.name}` dtype {dtype} but found {se.dtype}")
 
@@ -75,6 +75,7 @@ class DataFrameModel(BaseModel):
     def validate(cls, df: pd.DataFrame):
         # Validate `Fields`
         name_types = cls._get_names_and_types()
+        print("name_types:", name_types)
         name_fields = cls._get_fields()
         index_names = cls._get_index_names()
         Config = cls._get_config()
