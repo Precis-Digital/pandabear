@@ -155,27 +155,6 @@ class TestCustomChecksFailureSeries:
 
             MySchema.validate(df)
 
-    def test___custom_checks__failure__series__3(self):
-        """Test that the custom checks fails when no column name is passed to decorator."""
-        with pytest.raises(TypeError):
-
-            class MySchema(DataFrameModel):
-                column_a: int = Field()
-                column_b: int = Field()
-
-                @check()
-                def check_column(column: pd.Series) -> bool:
-                    return column.sum() > 0
-
-            df = pd.DataFrame(
-                dict(
-                    column_a=[1, 2, 3],
-                    column_b=[-1, -2, -3],
-                )
-            )
-
-            MySchema.validate(df)
-
     def test___custom_checks__failure__series__4(self):
         """Test that the custom checks fails when bad column names are passed to decorator."""
         with pytest.raises(ValueError):

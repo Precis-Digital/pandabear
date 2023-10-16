@@ -29,6 +29,7 @@ class BaseConfig:
     strict: bool = True
     filter: bool = False
     ordered: bool = False
+    coerce: bool = False
     multiindex_strict: bool = True
     multiindex_ordered: bool = False
     multiindex_sorted: bool = False
@@ -38,4 +39,7 @@ class BaseConfig:
     def _override(cls, other_cls):
         if other_cls is cls:
             return cls
-        return type("SchemaConfig", (other_cls, cls), {})
+
+        new_class = type("SchemaConfig", (other_cls, cls), {})
+        new_class.__annotations__ = cls.__annotations__.copy()
+        return new_class

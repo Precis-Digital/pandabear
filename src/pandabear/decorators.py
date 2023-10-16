@@ -1,6 +1,6 @@
 import inspect
 from functools import wraps
-from types import UnionType
+from types import NoneType, UnionType
 from typing import Any, Callable, get_args
 
 import pandas as pd
@@ -54,24 +54,17 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def check(column_names: str | list[str], regex=False) -> Callable:
+def check(column_names: str | list[str] = None, regex=False) -> Callable:
     # Annotate method with check information. This allows the `validate`
     # method to find check functions and apply them to the correct columns.
-    if isinstance(column_names, str):
+    if not isinstance(column_names, (str, list, NoneType)):
+        raise TypeError(f"Expected `NoneType`, `str` or `list[str]`, but found {type(column_names)}")
 
-        def decorator(method: Callable) -> Callable:
-            method.__setattr__("__check__", [column_names])
-            method.__setattr__("__regex__", regex)
-            return method
+    column_names = [column_names] if type(column_names) == str else column_names
 
-    elif isinstance(column_names, list):
-
-        def decorator(method: Callable) -> Callable:
-            method.__setattr__("__check__", column_names)
-            method.__setattr__("__regex__", regex)
-            return method
-
-    else:
-        raise TypeError(f"Expected a `str` or `list[str]`, but found {type(column_names)}")
+    def decorator(method: Callable) -> Callable:
+        method.__setattr__("__check__", column_names)
+        method.__setattr__("__regex__", regex)
+        return method
 
     return decorator
