@@ -58,6 +58,6 @@ def test_override_config():
 
 
 if __name__ == "__main__":
-    # test_default_config()
+    test_default_config()
     test_override_config()
     print("Done")

@@ -117,7 +117,7 @@ class DataFrameModel(BaseModel):
             check_columns: list[str] = getattr(attr, "__check__")
 
             if check_columns is None:
-                print("hello!!!")
+                # assumes check is for whole df
                 if not attr(df):
                     raise ValueError(f"DataFrame did not pass custom check `{attr_name}`")
                 continue
@@ -136,7 +136,7 @@ class DataFrameModel(BaseModel):
         Config = cls._get_config()
         schema_columns = cls._get_column_names()
 
-        if Config.filter == "filter":
+        if Config.filter:
             # order and strict are ignored, order is determined by the order of the columns in the schema
             # strict is ignored because the column selection will raise an error if the column is not found
             return df[schema_columns].copy()
