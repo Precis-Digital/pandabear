@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
+from pandabear.column_checks import ColumnCheckError
 
 
 # Define a custom dataframe schema
@@ -193,7 +194,7 @@ class TestBaseCasesSuccessSeries:
 class TestBaseCaseFailureDataFrame:
     def test___base_case__failure__dataframe__in(self):
         """Test that the base case fails for dataframes, when input is fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(df: DataFrame[MySchemaFailure]) -> DataFrame[MySchema]:
@@ -203,7 +204,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__out(self):
         """Test that the base case fails for dataframes, when output fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(df: DataFrame[MySchema]) -> DataFrame[MySchemaFailure]:
@@ -213,7 +214,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__nested__in(self):
         """Test that the base case fails for dataframes, when input is fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(
@@ -225,7 +226,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__nested__out(self):
         """Test that the base case fails for dataframes, when input is fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(
@@ -325,7 +326,7 @@ class TestBaseCaseFailureDataFrame:
 class TestBaseCaseFailureSeries:
     def test___base_case__failure__series__in(self):
         """Test that the base case fails for series, when input is fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(se: Series[MySeriesFailure]) -> Series[MySeries]:
@@ -335,7 +336,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__out(self):
         """Test that the base case fails for series, when output fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(se: Series[MySeries]) -> Series[MySeriesFailure]:
@@ -345,7 +346,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__nested__in(self):
         """Test that the base case fails for series, when input is fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(
@@ -357,7 +358,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__nested__out(self):
         """Test that the base case fails for series, when input is fails."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ColumnCheckError):
 
             @check_types
             def my_function(

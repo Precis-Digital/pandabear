@@ -54,11 +54,11 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def check(column_names: str | list[str] = None, regex=False) -> Callable:
+def check(column_names: str | list[str], regex=False) -> Callable:
     # Annotate method with check information. This allows the `validate`
     # method to find check functions and apply them to the correct columns.
-    if not isinstance(column_names, (str, list, NoneType)):
-        raise TypeError(f"Expected `NoneType`, `str` or `list[str]`, but found {type(column_names)}")
+    if not isinstance(column_names, (str, list)):
+        raise TypeError(f"Expected `str` or `list[str]`, but found {type(column_names)}")
 
     column_names = [column_names] if type(column_names) == str else column_names
 
@@ -68,3 +68,14 @@ def check(column_names: str | list[str] = None, regex=False) -> Callable:
         return method
 
     return decorator
+
+
+def dataframe_check(method: Callable) -> Callable:
+    # Annotate method with check information. This allows the `validate`
+    # method to find check functions and apply them to the correct columns.
+    def wrapper(df: pd.DataFrame) -> bool:
+        return method(df)
+
+    wrapper.__check__ = None
+
+    return wrapper
