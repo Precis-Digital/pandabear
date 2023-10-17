@@ -14,7 +14,7 @@ TYPE_DTYPE_MAP = {
 }
 
 
-@dataclasses.dataclass
+# @dataclasses.dataclass
 class BaseModel:
 
     Config: BaseConfig = BaseConfig
@@ -58,7 +58,7 @@ class DataFrameModel(BaseModel):
     @classmethod
     def _get_fields(cls):
         names_types = cls._get_names_and_types()
-        return {name: getattr(cls, name) for name in names_types}
+        return {name: getattr(cls, name) if hasattr(cls, name) else Field() for name in names_types}
 
     @staticmethod
     def _select_series_by_name(df: pd.DataFrame, name: str) -> pd.Series:
