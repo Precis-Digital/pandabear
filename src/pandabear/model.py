@@ -87,7 +87,7 @@ class DataFrameModel(BaseModel):
 
             if is_index:
                 # we don't coerce the index for now
-                series = df.index.get_level_values(name)
+                series = pd.df.index.get_level_values(name).to_series()
                 cls._validate_series(series, field, typ)
 
             elif field.alias is not None:
@@ -144,7 +144,9 @@ class DataFrameModel(BaseModel):
 
         if Config.strict:
             if set(schema_columns) != set(df.columns):
-                raise ValueError("DataFrame columns did not match expected columns")
+                raise ValueError(
+                    f"Columns {set(df.columns) - set(schema_columns)} are present in `df` but not in schema"
+                )
 
         if Config.ordered:
             # assumes order imples strict
