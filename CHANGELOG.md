@@ -1,3 +1,15 @@
+## v0.3.3 (2023-10-17)
+
+### Fix
+
+- Do not coerce order when when Config.filter = True
+- remove typo
+- Cast df.index as series
+
+### Refactor
+
+- StrictConfig not reused, move into schema
+
 ## v0.3.2 (2023-10-13)
 
 ### Fix
