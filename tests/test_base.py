@@ -4,18 +4,15 @@ import pytest
 from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
 
 
-# define non-strict config, for testing
-class NonStrictConfig:
-    strict: bool = False
-
-
 # Define a custom dataframe schema
 class MySchema(DataFrameModel):
     column_a: int = Field(gt=0)
     column_b: str = Field(str_contains="foo")
     column_c: float = Field(ge=0.0, le=1.0)
     my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
-    Config = NonStrictConfig
+
+    class Config:
+        strict = False
 
 
 class MySchemaFailure(DataFrameModel):
