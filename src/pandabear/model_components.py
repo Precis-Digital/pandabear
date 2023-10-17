@@ -7,10 +7,10 @@ class Field:
     typ: Any = None
 
     # Pandas Series checks
-    ge: float = None
-    gt: float = None
-    lt: float = None
-    le: float = None
+    ge: int | float = None
+    gt: int | float = None
+    lt: int | float = None
+    le: int | float = None
     isin: list = None
     notin: list = None
     str_contains: str = None

@@ -136,22 +136,40 @@ class DataFrameModel(BaseModel):
 
         Config = cls._get_config()
         schema_columns = cls._get_column_names()
+        column_fields = cls._get_fields()
 
+        # Select columns in `df` that match the schema. This is not as simple
+        # as `df[schema_columns]` because there may be aliases and regex!
+        matching_columns_in_df = []
+        for column in schema_columns:
+            field = column_fields[column]
+            if field.alias is not None:
+                if field.regex:
+                    matching_columns_in_df.extend(matched := df.filter(regex=field.alias, axis=1).columns)
+                    if len(matched) == 0:
+                        raise KeyError(f"No columns in `df` match regex `{field.alias}` for field `{column}`")
+                else:
+                    matching_columns_in_df.append(field.alias)
+            else:
+                matching_columns_in_df.append(column)
+            if matching_columns_in_df[-1] not in df.columns:
+                raise KeyError(f"Column `{matching_columns_in_df[-1]}` was not found in dataframe")
+
+        # Drop columns in `df` that do not match the schema
         if Config.filter:
-            # order and strict are ignored, order is determined by the order of the columns in the schema
-            # strict is ignored because the column selection will raise an error if the column is not found
-            return df[schema_columns].copy()
+            ordered_columns_in_df = [col for col in df.columns if col in matching_columns_in_df]
+            df = df.copy()[ordered_columns_in_df]
 
-        if Config.strict:
-            if set(schema_columns) != set(df.columns):
-                raise ValueError(
-                    f"Columns {set(df.columns) - set(schema_columns)} are present in `df` but not in schema"
-                )
+        # Complain about columns in `df` that are not defined in the schema
+        elif Config.strict:
+            if len(unexpected_columns := set(df.columns) - set(matching_columns_in_df)) > 0:
+                raise KeyError(f"Columns {unexpected_columns} are present in `df` but not in schema")
 
+        # Complain if the order of columns in `df` does not match the order in
+        # which they are defined in the schema
         if Config.ordered:
-            # assumes order imples strict
-            if schema_columns != list(df.columns):
-                raise ValueError("DataFrame columns did not match expected columns")
+            if matching_columns_in_df != list(df.columns):
+                raise ValueError("Columns in `df` are not ordered as in schema")
 
         return df
 
