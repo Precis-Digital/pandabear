@@ -87,7 +87,7 @@ class DataFrameModel(BaseModel):
 
             if is_index:
                 # we don't coerce the index for now
-                series = pd.df.index.get_level_values(name).to_series()
+                series = df.index.get_level_values(name).to_series()
                 cls._validate_series(series, field, typ)
 
             elif field.alias is not None:
