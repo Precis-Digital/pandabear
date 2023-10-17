@@ -1,10 +1,11 @@
 import dataclasses
+from types import NoneType
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP, check_handler
+from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP, ColumnCheckError
 from pandabear.index_type import check_type_is_index, get_index_dtype
 from pandabear.model_components import BaseConfig, Field
 
@@ -31,8 +32,9 @@ class BaseModel:
         for check_name, check_func in CHECK_NAME_FUNCTION_MAP.items():
             check_value = getattr(field, check_name)
             if check_value is not None:
-                check_handler(check_func=check_func, series=se, value=check_value)
-
+                result = check_func(series=se, value=check_value)
+                if not result.all():
+                    raise ColumnCheckError(check_name=check_name, check_value=check_value, series=se, result=result)
         return se
 
 
@@ -115,7 +117,7 @@ class DataFrameModel(BaseModel):
             if not hasattr(attr, "__check__"):
                 continue
 
-            check_columns: list[str] = getattr(attr, "__check__")
+            check_columns: list[str] | NoneType = getattr(attr, "__check__")
 
             if check_columns is None:
                 # assumes check is for whole df
@@ -147,7 +149,7 @@ class DataFrameModel(BaseModel):
                 raise ValueError("DataFrame columns did not match expected columns")
 
         if Config.ordered:
-            # assumes order imples strict
+            # assumes order implies strict
             if schema_columns != list(df.columns):
                 raise ValueError("DataFrame columns did not match expected columns")
 
