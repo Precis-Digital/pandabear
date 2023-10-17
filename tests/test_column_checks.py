@@ -3,8 +3,7 @@ import pandas as pd
 import pytest
 
 from pandabear.column_checks import (
-    check_handler,
-    series_all_unique,
+    ColumnCheckError,
     series_greater,
     series_greater_equal,
     series_isin,
@@ -96,23 +95,15 @@ def test_series_notnull():
     assert not series_notnull(pd.Series([pd.NaT, pd.Timestamp("1939-05-27")])).all()
 
 
-def test_check_handler():
+def test_ColumnCheckError():
     check_func = series_greater
     series = pd.Series([1, 2, 3], name="test")
-    # 1. test that it returns True for passing check
-    assert check_handler(check_func, series, 0)
 
-    # 2. test failure and message with info on failing rows
+    # 1. test failure and message with info on failing rows
     expected_message = r"Column 'test' failed check greater\(2\): 2 of 3 \(67 %\)"
-    with pytest.raises(ValueError, match=expected_message):
-        check_handler(check_func, series, 2)
-
-    # 3. test failure and message for global fail, no rows:
-    check_func = series_all_unique
-    series = pd.Series([1, 2, 3, 3], name="test")
-    expected_message = r"Column 'test' failed check all_unique\(None\)."
-    with pytest.raises(ValueError, match=expected_message):
-        check_handler(check_func, series, None)
+    with pytest.raises(ColumnCheckError, match=expected_message):
+        result = check_func(series, 2)
+        raise ColumnCheckError(check_name=check_func.__name__, check_value=2, series=series, result=result)
 
 
 if __name__ == "__main__":

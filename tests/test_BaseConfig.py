@@ -1,3 +1,5 @@
+import pytest
+
 from pandabear.model import DataFrameModel, Field
 from pandabear.model_components import BaseConfig
 
@@ -62,6 +64,24 @@ def test_override_config():
 
     assert Config.__annotations__ == BaseConfig.__annotations__
     assert Config.filter is True
+
+
+def test_assert_config_fields():
+    class BadConfig:
+        BAD_FIELD = True
+
+    expected_msg = "Config field `BAD_FIELD` is not defined in BaseConfig"
+    with pytest.raises(ValueError, match=expected_msg):
+        BaseConfig._assert_config_fields(BadConfig)
+
+
+def test_assert_config_types():
+    class BadConfig:
+        filter = 1
+
+    expected_msg = "Config field `filter` expected type <class 'bool'> but found <class 'int'>"
+    with pytest.raises(TypeError, match=expected_msg):
+        BaseConfig._assert_config_types(BadConfig)
 
 
 if __name__ == "__main__":

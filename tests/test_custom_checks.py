@@ -112,26 +112,6 @@ class TestCustomChecksSuccessSeries:
 
         MySchema.validate(df)
 
-    def test___custom_checks__success__dataframe(self):
-        """Test that the custom checks works for dataframes."""
-
-        class MySchema(DataFrameModel):
-            column_a: int = Field()
-            column_b: int = Field()
-
-            @check()
-            def check_df(df: pd.DataFrame) -> bool:
-                return df.sum().sum() > 0
-
-        df = pd.DataFrame(
-            dict(
-                column_a=[1, 2, 3],
-                column_b=[1, 0, 3],
-            )
-        )
-
-        MySchema.validate(df)
-
 
 @pytest.mark.custom_checks
 class TestCustomChecksFailureSeries:
@@ -164,6 +144,27 @@ class TestCustomChecksFailureSeries:
 
                 @check(["column_a", "column_b"])
                 def check_column_a(column: pd.Series) -> bool:
+                    return column.sum() > 0
+
+            df = pd.DataFrame(
+                dict(
+                    column_a=[1, 2, 3],
+                    column_b=[-1, -2, -3],
+                )
+            )
+
+            MySchema.validate(df)
+
+    def test___custom_checks__failure__series__3(self):
+        """Test that the custom checks fails when no column name is passed to decorator."""
+        with pytest.raises(TypeError):
+
+            class MySchema(DataFrameModel):
+                column_a: int = Field()
+                column_b: int = Field()
+
+                @check()
+                def check_column(column: pd.Series) -> bool:
                     return column.sum() > 0
 
             df = pd.DataFrame(
@@ -214,25 +215,4 @@ class TestCustomChecksFailureSeries:
                 )
             )
 
-            MySchema.validate(df)
-
-    def test___custom_checks__failure__dataframe(self):
-        """Test that the custom checks fails for dataframe check."""
-
-        class MySchema(DataFrameModel):
-            column_a: int = Field()
-            column_b: int = Field()
-
-            @check()
-            def check_df(df: pd.DataFrame) -> bool:
-                return (df > 0).all().all()
-
-        df = pd.DataFrame(
-            dict(
-                column_a=[1, 2, 3],
-                column_b=[-1, 1, 2],
-            )
-        )
-
-        with pytest.raises(ValueError):
             MySchema.validate(df)
