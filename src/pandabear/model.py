@@ -1,41 +1,64 @@
 import dataclasses
+from types import NoneType
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
-from pandabear.model_components import Field
+from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP, ColumnCheckError
+from pandabear.index_type import check_type_is_index, get_index_dtype
+from pandabear.model_components import BaseConfig, Field
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
 }
 
 
-@dataclasses.dataclass
+# @dataclasses.dataclass
 class BaseModel:
-    @staticmethod
-    def _validate_series(se: pd.Series, field: Field, typ: Any):
+
+    Config: BaseConfig = BaseConfig
+
+    @classmethod
+    def _validate_series(cls, se: pd.Series, field: Field, typ: Any):
         dtype = TYPE_DTYPE_MAP.get(typ, typ)
+
         if se.dtype != dtype:
-            raise TypeError(f"Expected `{se.name}` dtype {dtype} but found {se.dtype}")
+            if cls.Config.coerce:
+                se = se.astype(typ)
+            else:
+                raise TypeError(f"Expected `{se.name}` dtype {dtype} but found {se.dtype}")
 
         for check_name, check_func in CHECK_NAME_FUNCTION_MAP.items():
             check_value = getattr(field, check_name)
             if check_value is not None:
-                if not check_func(se, check_value):
-                    raise ValueError(f"Column`{se.name}` did not pass check `{check_name} {check_value}`")
+                result = check_func(series=se, value=check_value)
+                if not result.all():
+                    raise ColumnCheckError(check_name=check_name, check_value=check_value, series=se, result=result)
+        return se
 
 
 class DataFrameModel(BaseModel):
+    @classmethod
+    def _get_config(cls):
+        return BaseConfig._override(cls.Config)
+
     @classmethod
     def _get_names_and_types(cls):
         return cls.__annotations__
 
     @classmethod
+    def _get_index_names(cls):
+        return [c for c, v in cls._get_names_and_types().items() if check_type_is_index(v)]
+
+    @classmethod
+    def _get_column_names(cls):
+        return [c for c, v in cls._get_names_and_types().items() if not check_type_is_index(v)]
+
+    @classmethod
     def _get_fields(cls):
         names_types = cls._get_names_and_types()
-        return {name: getattr(cls, name) for name in names_types}
+        return {name: getattr(cls, name) if hasattr(cls, name) else Field() for name in names_types}
 
     @staticmethod
     def _select_series_by_name(df: pd.DataFrame, name: str) -> pd.Series:
@@ -54,36 +77,133 @@ class DataFrameModel(BaseModel):
     def validate(cls, df: pd.DataFrame):
         # Validate `Fields`
         name_types = cls._get_names_and_types()
+        print("name_types:", name_types)
         name_fields = cls._get_fields()
+        Config = cls._get_config()
+
         for name in name_types:
             typ = name_types[name]
             field = name_fields[name]
-            if field.alias is not None:
-                for series in cls._select_series_by_alias(df, field.alias, field.regex):
-                    cls._validate_series(series, field, typ)
-            else:
-                series = cls._select_series_by_name(df, name)
+
+            if check_type_is_index(typ):
+                # we don't coerce the index for now
+                series = df.index.get_level_values(name).to_series()
+                typ = get_index_dtype(typ)
                 cls._validate_series(series, field, typ)
 
-        # Validate `@check` decorated functions
+            elif field.alias is not None:
+                for series in cls._select_series_by_alias(df, field.alias, field.regex):
+                    series = cls._validate_series(series, field, typ)
+                    if Config.coerce:
+                        df[series.name] = series
+
+            else:
+                series = cls._select_series_by_name(df, name)
+                series = cls._validate_series(series, field, typ)
+                if Config.coerce:
+                    df[series.name] = series
+
+        cls._validate_custom_checks(df)
+        cls._validate_multiindex(df)
+
+        return cls._validate_columns(df)
+
+    @classmethod
+    def _validate_custom_checks(cls, df):
         for attr_name in dir(cls):
+
             attr = getattr(cls, attr_name)
-            if hasattr(attr, "__check__"):
-                check_columns: list[str] = getattr(attr, "__check__")
+            if not hasattr(attr, "__check__"):
+                continue
 
-                if getattr(attr, "__regex__"):
-                    new_check_columns = []
-                    for column in check_columns:
-                        matched_columns = df.filter(regex=column, axis=1).columns
-                        if len(matched_columns) == 0:
-                            raise ValueError(f"No columns match regex `{column}`")
-                        new_check_columns.extend(matched_columns)
-                    check_columns = new_check_columns
+            check_columns: list[str] | NoneType = getattr(attr, "__check__")
 
-                for column in check_columns:
-                    series = cls._select_series_by_name(df, column)
-                    if not attr(series):
-                        raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
+            if check_columns is None:
+                # assumes check is for whole df
+                if not attr(df):
+                    raise ValueError(f"DataFrame did not pass custom check `{attr_name}`")
+                continue
+
+            if attr.__regex__:
+                check_columns = get_matching_columns(df, check_columns)
+
+            for column in check_columns:
+                series = cls._select_series_by_name(df, column)
+                if not attr(series):
+                    raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
+
+    @classmethod
+    def _validate_columns(cls, df: pd.DataFrame) -> pd.DataFrame:
+
+        Config = cls._get_config()
+        schema_columns = cls._get_column_names()
+        column_fields = cls._get_fields()
+
+        # Select columns in `df` that match the schema. This is not as simple
+        # as `df[schema_columns]` because there may be aliases and regex!
+        matching_columns_in_df = []
+        for column in schema_columns:
+            field = column_fields[column]
+            if field.alias is not None:
+                if field.regex:
+                    matching_columns_in_df.extend(matched := df.filter(regex=field.alias, axis=1).columns)
+                    if len(matched) == 0:
+                        raise KeyError(f"No columns in `df` match regex `{field.alias}` for field `{column}`")
+                else:
+                    matching_columns_in_df.append(field.alias)
+            else:
+                matching_columns_in_df.append(column)
+            if matching_columns_in_df[-1] not in df.columns:
+                raise KeyError(f"Column `{matching_columns_in_df[-1]}` was not found in dataframe")
+
+        # Drop columns in `df` that do not match the schema
+        if Config.filter:
+            ordered_columns_in_df = [col for col in df.columns if col in matching_columns_in_df]
+            df = df.copy()[ordered_columns_in_df]
+
+        # Complain about columns in `df` that are not defined in the schema
+        elif Config.strict:
+            if len(unexpected_columns := set(df.columns) - set(matching_columns_in_df)) > 0:
+                raise KeyError(f"Columns {unexpected_columns} are present in `df` but not in schema")
+
+        # Complain if the order of columns in `df` does not match the order in
+        # which they are defined in the schema
+        if Config.ordered:
+            if matching_columns_in_df != list(df.columns):
+                raise ValueError("Columns in `df` are not ordered as in schema")
+
+        return df
+
+    @classmethod
+    def _validate_multiindex(cls, df: pd.DataFrame):
+        index_names = cls._get_index_names()
+
+        Config = cls._get_config()
+
+        if (index_names == []) and (df.index.names == [None]):
+            # no index defined in schema, and no index defined in dataframe
+            return
+
+        if set(index_names) - set(df.index.names):
+            # all schema index names must be in dataframe index names
+            raise ValueError(f"Index levels {set(index_names) - set(df.index.names)} missing in df")
+
+        if Config.multiindex_strict:
+            if not set(index_names) == set(list(df.index.names)):
+                raise ValueError("MultiIndex names did not match expected names")
+
+        if Config.multiindex_ordered:
+            # assume order implies strict
+            if cls._get_index_names() != list(df.index.names):
+                raise ValueError("MultiIndex names did not match expected names")
+
+        if Config.multiindex_sorted:
+            if not (df.index.is_monotonic_increasing or df.index.is_monotonic_decreasing):
+                raise ValueError("MultiIndex not sorted")
+
+        if Config.multiindex_unique:
+            if not df.index.is_unique:
+                raise ValueError("MultiIndex was not unique")
 
 
 class SeriesModel(BaseModel):
@@ -101,3 +221,13 @@ class SeriesModel(BaseModel):
         _, value_type = cls._get_value_name_and_type()
         field = cls._get_field()
         cls._validate_series(series, field, value_type)
+
+
+def get_matching_columns(df: pd.DataFrame, regexes: list[str]) -> list[str]:
+    new_check_columns = []
+    for column in regexes:
+        matched_columns = df.filter(regex=column, axis=1).columns
+        if len(matched_columns) == 0:
+            raise ValueError(f"No columns match regex `{column}`")
+        new_check_columns.extend(matched_columns)
+    return new_check_columns
