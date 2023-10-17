@@ -79,16 +79,15 @@ class DataFrameModel(BaseModel):
         name_types = cls._get_names_and_types()
         print("name_types:", name_types)
         name_fields = cls._get_fields()
-        index_names = cls._get_index_names()
         Config = cls._get_config()
 
         for name in name_types:
-            is_index = name in index_names
-            typ = get_index_dtype(name_types[name]) if is_index else name_types[name]
+            typ = name_types[name]
             field = name_fields[name]
 
-            if is_index:
+            if check_type_is_index(typ):
                 # we don't coerce the index for now
+                typ = get_index_dtype(typ)
                 series = df.index.get_level_values(name)
                 cls._validate_series(series, field, typ)
 
