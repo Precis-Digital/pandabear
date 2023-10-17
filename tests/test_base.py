@@ -1,3 +1,22 @@
+"""Test the base case for the `check_types` decorator.
+
+If these tests pass, we can expect that the `check_types` decorator will work
+in cases such as (and with great variation of):
+
+```
+    @check_types
+    def my_function(df: DataFrame[MySchema]) -> Series[MySeries]:
+        return df.column_a
+    
+    column_a = my_function(df)
+```
+
+When the `check_types` decorator is applied to `my_function`, and the function
+call does not raise an error, we are guaranteed that `df` is a `DataFrame` that
+follows the `MySchema` schema, and that the return value `column_a` is a `Series`
+that follows the `MySeries` type definition. Neat right?!
+"""
+
 import pandas as pd
 import pytest
 

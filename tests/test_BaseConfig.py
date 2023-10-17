@@ -3,6 +3,10 @@ from pandabear.model_components import BaseConfig
 
 
 def test_default_config():
+    """This test checks whether the default configuration values of a
+    DataFrameModel subclass are the same as the default configuration values
+    of the BaseConfig class."""
+
     class MySchema(DataFrameModel):
         a: int
         b: str
@@ -16,6 +20,9 @@ def test_default_config():
 
 
 def test_override_config():
+    """This test checks whether the _override method of the BaseConfig class
+    works correctly with DataFrameModel subclasses that have inheritance.
+    """
 
     # 1. Test of BaseConfig override works
 

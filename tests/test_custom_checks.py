@@ -217,7 +217,7 @@ class TestCustomChecksFailureSeries:
             MySchema.validate(df)
 
     def test___custom_checks__failure__dataframe(self):
-        """Test that the custom checks fails foir datafrane check."""
+        """Test that the custom checks fails for dataframe check."""
 
         class MySchema(DataFrameModel):
             column_a: int = Field()
