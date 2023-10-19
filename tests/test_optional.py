@@ -24,7 +24,6 @@ from pandabear.exceptions import MissingColumnsError
 from pandabear.index_type import Index
 
 
-@pytest.mark.custom_checks
 class TestOptionalSuccess:
     def test___optional__success__column_name(self):
         """Test that optional fields work in the simplest case."""
@@ -121,7 +120,6 @@ class TestOptionalSuccess:
         )
 
 
-@pytest.mark.custom_checks
 class TestOptionalFailure:
     def test___optional__failure__column_name(self):
         """Test that optional fields fails in the simplest case."""

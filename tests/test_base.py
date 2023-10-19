@@ -21,7 +21,7 @@ import pandas as pd
 import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
-from pandabear.column_checks import ColumnCheckError
+from pandabear.exceptions import ColumnCheckError
 
 
 # Define a custom dataframe schema
@@ -65,7 +65,6 @@ df = pd.DataFrame(
 se = df.column_a
 
 
-@pytest.mark.base_case_success_dataframe
 class TestBaseCasesSuccessDataFrame:
     def test___base_case__success__dataframe__1(self):
         """Test that the base case works for dataframes."""
@@ -205,7 +204,6 @@ class TestBaseCasesSuccessDataFrame:
         assert "column_c" not in dfs_out[1][1].columns
 
 
-@pytest.mark.base_case_success_series
 class TestBaseCasesSuccessSeries:
     def test___base_case__success__series(self):
         """Test that the base case works for series."""
@@ -259,7 +257,6 @@ class TestBaseCasesSuccessSeries:
         my_function(se, 1)
 
 
-@pytest.mark.base_case_failure_dataframe
 class TestBaseCaseFailureDataFrame:
     def test___base_case__failure__dataframe__in(self):
         """Test that the base case fails for dataframes, when input is fails."""
@@ -391,7 +388,6 @@ class TestBaseCaseFailureDataFrame:
             my_function(df)
 
 
-@pytest.mark.base_case_failure_series
 class TestBaseCaseFailureSeries:
     def test___base_case__failure__series__in(self):
         """Test that the base case fails for series, when input is fails."""
