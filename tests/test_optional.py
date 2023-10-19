@@ -21,6 +21,7 @@ import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field
 from pandabear.exceptions import MissingColumnsError
+from pandabear.index_type import Index
 
 
 @pytest.mark.custom_checks
@@ -45,6 +46,25 @@ class TestOptionalSuccess:
             pd.DataFrame(
                 dict(
                     # column_a=[1, 2, 3],
+                    column_b=[4, 5, 6],
+                )
+            )
+        )
+
+    def test___optional__success__index(self):
+        """Test that optional fields work in the simplest case."""
+
+        class MySchema(DataFrameModel):
+            column_a: Optional[Index[int]] = Field()
+            column_b: int = Field()
+
+        MySchema.validate(
+            df=pd.DataFrame(dict(column_b=[4, 5, 6]), index=[1, 2, 3], columns=["column_b"]).rename_axis("column_a")
+        )
+
+        MySchema.validate(
+            pd.DataFrame(
+                dict(
                     column_b=[4, 5, 6],
                 )
             )

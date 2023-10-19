@@ -18,7 +18,7 @@ def test_coerce_dtypes():
 
     df = pd.DataFrame(dict(a=["1"], b=[1], c=[2]))
     print(df.dtypes)
-    expected_message = "Expected `a` dtype <class 'int'> but found object"
+    expected_message = "Expected `a` with dtype <class 'int'> but found object"
     with pytest.raises(TypeError, match=expected_message):
         dfval = MySchema.validate(df)
 
