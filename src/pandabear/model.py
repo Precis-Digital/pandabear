@@ -263,9 +263,6 @@ class DataFrameModel(BaseModel):
                     f"Decorator on custom check `{attr_name}` references undefined columns {undefined_columns}. Values passed to the `check` decorator must reference columns defined in the schema."
                 )
 
-            if attr.__regex__:
-                check_columns = get_matching_columns(df, check_columns)
-
             for column in check_columns:
                 if not attr(df[column]):
                     raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
@@ -351,13 +348,3 @@ class SeriesModel(BaseModel):
         field = cls._get_field()
         Config = cls._get_config()
         cls._validate_series(series, field, value_type, Config.coerce)
-
-
-def get_matching_columns(df: pd.DataFrame, regexes: list[str]) -> list[str]:
-    new_check_columns = []
-    for column in regexes:
-        matched_columns = df.filter(regex=column, axis=1).columns
-        if len(matched_columns) == 0:
-            raise ValueError(f"No columns match regex `{column}`")
-        new_check_columns.extend(matched_columns)
-    return new_check_columns

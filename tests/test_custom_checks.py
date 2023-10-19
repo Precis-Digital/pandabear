@@ -153,24 +153,3 @@ class TestCustomChecksFailureDataFrame:
             )
 
             MySchema.validate(df)
-
-    def test___custom_checks__failure__dataframe__5(self):
-        """Test that the custom checks fails when bad column regex is passed to decorator."""
-        with pytest.raises(SchemaDefinitionError):
-
-            class MySchema(DataFrameModel):
-                column_a: int = Field()
-                column_b: int = Field()
-
-                @check("bad_pattern.+", regex=True)
-                def check_column(column: pd.Series) -> bool:
-                    return column.sum() > 0
-
-            df = pd.DataFrame(
-                dict(
-                    column_a=[1, 2, 3],
-                    column_b=[1, 2, 3],
-                )
-            )
-
-            MySchema.validate(df)

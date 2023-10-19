@@ -98,21 +98,16 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def check(column_names: str | list[str], regex=False) -> Callable:
+def check(column_names: str | list[str]) -> Callable:
     """Decorator for defining custom checks on dataframe columns.
 
     This decorator is used to define custom checks on dataframe columns.
-    It can be used to define custom checks on a single column, or multiple
-    columns at once. The decorator can be used on both `DataFrameModel`
-    subclasses and `SeriesModel` subclasses.
+    It requires that that the user specifies the column name(s) to apply
+    the check to. These must match the column names defined in the schema.
 
     Args:
-        column_names (str | list[str]): The name(s) of the column(s) to apply
-            the check to. If `regex` is True, then the column names are
-            interpreted as regular expressions, and all columns that match
-            the regular expression will be selected and checked.
-        regex (bool, optional): Whether or not the column name(s) are regular
-            expressions. Defaults to False.
+        column_names (str | list[str]): The column name(s), defined in the
+            schema, to apply the check to.
 
     Raises:
         TypeError: If `column_names` is not a `str` or `list[str]`.
@@ -135,11 +130,6 @@ def check(column_names: str | list[str], regex=False) -> Callable:
         >>>     @check(["column_a", "column_b"])
         >>>     def check_columns(column: pd.Series) -> bool:
         >>>         return column.sum() > 0
-        >>>
-        >>>     # or
-        >>>     @check("column_.+", regex=True)
-        >>>     def check_columns(column: pd.Series) -> bool:
-        >>>         return column.sum() > 0
     """
     if not isinstance(column_names, (str, list)):
         raise TypeError(f"Expected `str` or `list[str]`, but found {type(column_names)}")
@@ -150,7 +140,6 @@ def check(column_names: str | list[str], regex=False) -> Callable:
         # Annotate method with check information. This allows the `validate`
         # method to find check functions and apply them to the correct columns.
         method.__setattr__("__check__", column_names)
-        method.__setattr__("__regex__", regex)
         return method
 
     return decorator

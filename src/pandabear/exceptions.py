@@ -11,5 +11,4 @@ class MissingColumnsError(Exception):
 
 class SchemaDefinitionError(Exception):
     def __init__(self, message):
-        # strip trailing "." and " " from message
         super().__init__(message)
