@@ -31,7 +31,7 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any):
         if not type(var) in [pd.DataFrame, pd.Series]:
             raise TypeError(f"Expected a pandas dataframe or series, but found {type(var)}. {suggestion}")
         schema = get_args(type_hint)[1]
-        schema.validate(var)
+        transformed_var = schema.validate(var)
 
     # type hint like: `tuple[int, pd.DataFrame | MySchema]` (or deeper nesting)
     elif (len(return_types := get_args(type_hint))) > 1:
@@ -39,8 +39,15 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any):
             raise TypeError(f"Expected an array-like, but found {type(var)}. {suggestion}")
         elif len(var) != len(return_types):
             raise TypeError(f"Expected {len(return_types)} values, but found {len(var)}. {suggestion}")
+        transformed_var = ()
         for var_i, type_hint_i in zip(var, return_types):
-            _validate_variable_against_type_hint(var_i, type_hint_i)
+            transformed_var += (_validate_variable_against_type_hint(var_i, type_hint_i),)
+
+    # type hint is not a `DataFrameModel` subclass
+    else:
+        transformed_var = var
+
+    return transformed_var
 
 
 def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -85,13 +92,13 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
 
         for name, variable in bound_args.arguments.items():
             type_hint = sig.parameters[name].annotation
-            _validate_variable_against_type_hint(variable, type_hint)
+            bound_args.arguments[name] = _validate_variable_against_type_hint(variable, type_hint)
 
         # Execute the function
-        result = func(*args, **kwargs)
+        result = func(**bound_args.arguments)
 
         # Validate return value(s)
-        _validate_variable_against_type_hint(result, sig.return_annotation)
+        result = _validate_variable_against_type_hint(result, sig.return_annotation)
 
         return result
 

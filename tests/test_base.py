@@ -154,6 +154,56 @@ class TestBaseCasesSuccessDataFrame:
 
         my_function(df, 1)
 
+    def test___base_case__success__dataframe__filtering__1(self):
+        """Test that filtering propagages filtered data in/out of function."""
+
+        class MySchemaMissingColumnC(DataFrameModel):
+            column_a: int = Field(gt=0)
+            column_b: str = Field(str_contains="foo")
+            my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
+
+            class Config:
+                filter = True
+
+        @check_types
+        def my_function(df: DataFrame[MySchemaMissingColumnC]) -> DataFrame[MySchemaMissingColumnC]:
+            assert "column_c" not in df.columns
+            return df
+
+        assert "column_c" not in my_function(df).columns
+
+    def test___base_case__success__dataframe__filtering__2(self):
+        """Test that filtering recursively propagages filtered data in/out of function."""
+
+        class MySchemaMissingColumnC(DataFrameModel):
+            column_a: int = Field(gt=0)
+            column_b: str = Field(str_contains="foo")
+            my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
+
+            class Config:
+                filter = True
+
+        @check_types
+        def my_function(
+            dfs: tuple[
+                DataFrame[MySchemaMissingColumnC],
+                tuple[DataFrame[MySchemaMissingColumnC], DataFrame[MySchemaMissingColumnC]],
+            ]
+        ) -> tuple[
+            DataFrame[MySchemaMissingColumnC],
+            tuple[DataFrame[MySchemaMissingColumnC], DataFrame[MySchemaMissingColumnC]],
+        ]:
+            assert "column_c" not in dfs[0].columns
+            assert "column_c" not in dfs[1][0].columns
+            assert "column_c" not in dfs[1][1].columns
+            return dfs
+
+        dfs_out = my_function((df, (df, df)))
+
+        assert "column_c" not in dfs_out[0].columns
+        assert "column_c" not in dfs_out[1][0].columns
+        assert "column_c" not in dfs_out[1][1].columns
+
 
 @pytest.mark.base_case_success_series
 class TestBaseCasesSuccessSeries:

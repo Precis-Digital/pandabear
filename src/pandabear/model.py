@@ -360,6 +360,9 @@ class DataFrameModel(BaseModel):
                 could e.g. happen when there is an overlap between the columns
                 in `df` that different schema fields match, so that it is not
                 clear which field should be used to validate a column.
+            SchemaValidationError: If there is a problem with the data in `df`.
+                This could e.g. happen when a column is of the wrong dtype or
+                when a custom check fails.
         """
         schema_map = cls._get_schema_map()
         Config = cls._get_config()
@@ -415,7 +418,16 @@ class SeriesModel(BaseModel):
 
     @classmethod
     def validate(cls, series: pd.Series):
+        """Validate a series against the schema.
+
+        Args:
+            series (pandas.Series): The series to validate.
+
+        Returns:
+            pandas.Series: The validated series.
+        """
         _, value_type = cls._get_value_name_and_type()
         field = cls._get_field()
         Config = cls._get_config()
-        cls._validate_series(series, field, value_type, Config.coerce)
+        series = cls._validate_series(series, field, value_type, Config.coerce)
+        return series
