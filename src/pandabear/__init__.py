@@ -7,7 +7,7 @@ from logging import NullHandler
 
 logging.getLogger(__name__).addHandler(NullHandler())
 
-from pandabear.decorators import check, check_types
+from pandabear.decorators import check, check_types, dataframe_check
 from pandabear.index_type import Index
 from pandabear.model import DataFrameModel, SeriesModel
 from pandabear.model_components import Field

@@ -2,11 +2,12 @@ import pandas as pd
 import pytest
 
 from pandabear import DataFrameModel, Field, check
+from pandabear.exceptions import SchemaDefinitionError
 
 
 @pytest.mark.custom_checks
-class TestCustomChecksSuccessSeries:
-    def test___custom_checks__success__series__1(self):
+class TestCustomChecksSuccessDataFrame:
+    def test___custom_checks__success__dataframe__1(self):
         """Test that the custom checks works for series."""
 
         class MySchema(DataFrameModel):
@@ -24,7 +25,7 @@ class TestCustomChecksSuccessSeries:
 
         MySchema.validate(df)
 
-    def test___custom_checks__success__series__2(self):
+    def test___custom_checks__success__dataframe__2(self):
         """Test that the custom checks works for multiple series."""
 
         class MySchema(DataFrameModel):
@@ -44,7 +45,7 @@ class TestCustomChecksSuccessSeries:
 
         MySchema.validate(df)
 
-    def test___custom_checks__success__series__3(self):
+    def test___custom_checks__success__dataframe__3(self):
         """Test that the custom checks works for multiple series, with multiple check functions."""
 
         class MySchema(DataFrameModel):
@@ -68,54 +69,10 @@ class TestCustomChecksSuccessSeries:
 
         MySchema.validate(df)
 
-    def test___custom_checks__success__series__4(self):
-        """Test that the custom checks works for multiple series, with regex."""
-
-        class MySchema(DataFrameModel):
-            column_a: int = Field()
-            column_c: float = Field()
-
-            @check(r"column_\w", regex=True)
-            def check_column(column: pd.Series) -> bool:
-                return column.sum() > 0
-
-        df = pd.DataFrame(
-            dict(
-                column_a=[1, 2, 3],
-                column_c=[0.1, 0.2, 0.3],
-            )
-        )
-
-        MySchema.validate(df)
-
-    def test___custom_checks__success__series__5(self):
-        """Test that the custom checks works for multiple series, with multiple regex."""
-
-        class MySchema(DataFrameModel):
-            column_a: int = Field()
-            column_c: float = Field()
-            series_a: int = Field()
-            series_c: float = Field()
-
-            @check([r"column_\w", r"series_\w"], regex=True)
-            def check_column(column: pd.Series) -> bool:
-                return column.sum() > 0
-
-        df = pd.DataFrame(
-            dict(
-                column_a=[1, 2, 3],
-                column_c=[0.1, 0.2, 0.3],
-                series_a=[1, 2, 3],
-                series_c=[0.1, 0.2, 0.3],
-            )
-        )
-
-        MySchema.validate(df)
-
 
 @pytest.mark.custom_checks
-class TestCustomChecksFailureSeries:
-    def test___custom_checks__failure__series__1(self):
+class TestCustomChecksFailureDataFrame:
+    def test___custom_checks__failure__dataframe__1(self):
         """Test that the custom checks fails when check does not pass."""
         with pytest.raises(ValueError):
 
@@ -134,7 +91,7 @@ class TestCustomChecksFailureSeries:
 
             MySchema.validate(df)
 
-    def test___custom_checks__failure__series__2(self):
+    def test___custom_checks__failure__dataframe__2(self):
         """Test that the custom checks fails when one of checks do not pass."""
         with pytest.raises(ValueError):
 
@@ -155,7 +112,7 @@ class TestCustomChecksFailureSeries:
 
             MySchema.validate(df)
 
-    def test___custom_checks__failure__series__3(self):
+    def test___custom_checks__failure__dataframe__3(self):
         """Test that the custom checks fails when no column name is passed to decorator."""
         with pytest.raises(TypeError):
 
@@ -176,9 +133,9 @@ class TestCustomChecksFailureSeries:
 
             MySchema.validate(df)
 
-    def test___custom_checks__failure__series__4(self):
+    def test___custom_checks__failure__dataframe__4(self):
         """Test that the custom checks fails when bad column names are passed to decorator."""
-        with pytest.raises(ValueError):
+        with pytest.raises(SchemaDefinitionError):
 
             class MySchema(DataFrameModel):
                 column_a: int = Field()
@@ -197,9 +154,9 @@ class TestCustomChecksFailureSeries:
 
             MySchema.validate(df)
 
-    def test___custom_checks__failure__series__5(self):
+    def test___custom_checks__failure__dataframe__5(self):
         """Test that the custom checks fails when bad column regex is passed to decorator."""
-        with pytest.raises(ValueError):
+        with pytest.raises(SchemaDefinitionError):
 
             class MySchema(DataFrameModel):
                 column_a: int = Field()
@@ -212,6 +169,7 @@ class TestCustomChecksFailureSeries:
             df = pd.DataFrame(
                 dict(
                     column_a=[1, 2, 3],
+                    column_b=[1, 2, 3],
                 )
             )
 

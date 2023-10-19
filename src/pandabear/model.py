@@ -1,12 +1,13 @@
 import dataclasses
 from types import NoneType
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
 
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP, ColumnCheckError
-from pandabear.index_type import check_type_is_index, get_index_dtype
+from pandabear.exceptions import MissingColumnsError, SchemaDefinitionError
+from pandabear.index_type import get_index_dtype, type_is_index
 from pandabear.model_components import BaseConfig, Field
 
 TYPE_DTYPE_MAP = {
@@ -16,15 +17,18 @@ TYPE_DTYPE_MAP = {
 
 # @dataclasses.dataclass
 class BaseModel:
-
     Config: BaseConfig = BaseConfig
 
     @classmethod
-    def _validate_series(cls, se: pd.Series, field: Field, typ: Any):
+    def _get_config(cls):
+        return BaseConfig._override(cls.Config)
+
+    @classmethod
+    def _validate_series(cls, se: pd.Series, field: Field, typ: Any, coerce: bool) -> pd.Series:
         dtype = TYPE_DTYPE_MAP.get(typ, typ)
 
         if se.dtype != dtype:
-            if cls.Config.coerce:
+            if coerce:
                 se = se.astype(typ)
             else:
                 raise TypeError(f"Expected `{se.name}` dtype {dtype} but found {se.dtype}")
@@ -40,78 +44,208 @@ class BaseModel:
 
 class DataFrameModel(BaseModel):
     @classmethod
-    def _get_config(cls):
-        return BaseConfig._override(cls.Config)
-
-    @classmethod
-    def _get_names_and_types(cls):
-        return cls.__annotations__
-
-    @classmethod
     def _get_index_names(cls):
-        return [c for c, v in cls._get_names_and_types().items() if check_type_is_index(v)]
+        return [c for c, v in cls.__annotations__.items() if type_is_index(v)]
 
     @classmethod
-    def _get_column_names(cls):
-        return [c for c, v in cls._get_names_and_types().items() if not check_type_is_index(v)]
+    def _get_name_field_map(cls) -> dict[str, tuple[type, bool, bool, Field]]:
+        """Get a dictionary mapping between index/column names and `Field`.
 
-    @classmethod
-    def _get_fields(cls):
-        names_types = cls._get_names_and_types()
-        return {name: getattr(cls, name) if hasattr(cls, name) else Field() for name in names_types}
+        Note: The `getattr(cls, name) if hasattr(cls, name) else Field()` bit
+            assigns a `Field` value to columns that are defined in the schema
+            without a `Field`. This is useful, because it allows a more concise
+            API where columns that don't have aliases or need checks can be
+            defined as an annotation without a `Field` object. E.g.:
+            >>> class MySchema(DataFrameModel):
+            >>>     column_a: int
+            >>>     column_b: str = Field(alias="column_b_alias")
+            Here `column_a` has no checks and no alias, so it is defined simply
+            as an annotation.
+
+        Returns:
+            name_field_map (dict): A dictionary mapping index/column names to a
+                tuple containing (type, optional, is_index, field)
+        """
+        name_field_map = {}
+        for name, typ in cls.__annotations__.items():
+            typ, optional = cls._check_optional_type(typ)
+            is_index = False
+            if type_is_index(typ):
+                typ = get_index_dtype(typ)
+                is_index = True
+            name_field_map[name] = (typ, optional, is_index, getattr(cls, name) if hasattr(cls, name) else Field())
+        return name_field_map
 
     @staticmethod
-    def _select_series_by_name(df: pd.DataFrame, name: str) -> pd.Series:
-        if not name in df.columns:
-            raise ValueError(f"Column `{name}` was not found in dataframe")
-        return df[name]
+    def _select_series(df: pd.DataFrame, column_name: str, optional: bool = True) -> Optional[list[pd.Series]]:
+        try:
+            return [df[column_name]]
+        except KeyError:
+            # When this happens we can deduce that the corresponding column is
+            # optional (otherwise an error would have been raised in
+            # _validate_columns).
+            assert (
+                optional
+            ), "This should not happen. Looks like columns were not properly filtered in `_validate_columns`"
+            return []
 
     @staticmethod
-    def _select_series_by_alias(df: pd.DataFrame, alias: str, regex: bool) -> list[pd.Series]:
-        if regex:
-            return [df[col] for col in df.filter(regex=alias, axis=1).columns]
-        else:
-            return [df[alias]]
+    def _select_series_by_regex(df: pd.DataFrame, alias: str) -> list[pd.Series]:
+        return [df[col] for col in df.filter(regex=alias, axis=1).columns]
+
+    @staticmethod
+    def _check_optional_type(typ: type) -> tuple[type, bool]:
+        """
+        Check if a type is optional and return the non-optional type.
+
+        Args:
+            typ (type): The type to check.
+
+        Returns:
+            typ: The non-optional type.
+            optional: A boolean indicating whether the type is optional.
+
+        Raises:
+            TypeError: If `typ` is not a type.
+        """
+        optional = False
+        if hasattr(typ, "__args__") and type(None) in typ.__args__:
+            optional = True
+            if len(typ.__args__) == 2:
+                typ = typ.__args__[0]
+            else:
+                typ = typ.__args__[:-1]
+        return typ, optional
 
     @classmethod
     def validate(cls, df: pd.DataFrame):
-        # Validate `Fields`
-        name_types = cls._get_names_and_types()
-        print("name_types:", name_types)
-        name_fields = cls._get_fields()
+        """Validate a dataframe against the schema.
+
+        This method also acts as a filter, that (depending on the config) will
+        pass `df` through with coerced types, filtered columns, ordered columns
+        or as-is.
+
+        Args:
+            df (pandas.DataFrame): The dataframe to validate.
+
+        Returns:
+            pandas.DataFrame: The validated dataframe.
+
+        Raises:
+            MissingColumnsError: If a column name/alias/regex is not in `df`.
+                This happens when a column is defined in the schema but not in
+                `df`. Or (more often than you'd think) because of typos ^^.
+            SchemaDefinitionError: If there is a problem with the schema. This
+                could e.g. happen when there is an overlap between the columns
+                in `df` that different schema fields match, so that it is not
+                clear which field should be used to validate a column.
+        """
+        name_field_map = cls._get_name_field_map()
         Config = cls._get_config()
 
-        for name in name_types:
-            typ = name_types[name]
-            field = name_fields[name]
+        # Check that indices and columns in `df` match schema. The only errors
+        # that should be thrown here relate to schema errors or missing columns
+        # in `df`. Furthermore, this method may filter, coerce or order `df`
+        # depending on user-provided specifications in `Config`.
+        ...
+        df = cls._validate_columns(df, name_field_map, Config)
 
-            if check_type_is_index(typ):
-                # we don't coerce the index for now
-                series = df.index.get_level_values(name).to_series()
-                typ = get_index_dtype(typ)
-                cls._validate_series(series, field, typ)
+        # Validate `df` against schema. The only errors that should be raises
+        # in this step are from dtype checks and `Field` checks:
+        for name, (typ, optional, is_index, field) in name_field_map.items():
+            # Select the column (or columns) in `df` that match the field.
+            # ... when index column
+            if is_index:
+                matched_series = [df.index.get_level_values(field.alias or name).to_series()]
+                if field.regex:
+                    raise NotImplementedError("Regex not implemented for index aliases")
 
+            # ... when column has aliased name
             elif field.alias is not None:
-                for series in cls._select_series_by_alias(df, field.alias, field.regex):
-                    series = cls._validate_series(series, field, typ)
-                    if Config.coerce:
-                        df[series.name] = series
+                if field.regex:
+                    matched_series = cls._select_series_by_regex(df, field.alias)
+                else:
+                    matched_series = cls._select_series(df, field.alias, optional)
 
+            # ... when column name is attribute name (not alias)
             else:
-                series = cls._select_series_by_name(df, name)
-                series = cls._validate_series(series, field, typ)
+                matched_series = cls._select_series(df, name, optional)
+
+            # Validate the selected column(s) against the field and type.
+            for series in matched_series:
+                series = cls._validate_series(series, field, typ, Config.coerce)
                 if Config.coerce:
                     df[series.name] = series
 
-        cls._validate_custom_checks(df)
         cls._validate_multiindex(df)
 
-        return cls._validate_columns(df)
+        cls._validate_custom_checks(df)
+        return df
+
+    @classmethod
+    def _select_matching_columns(
+        cls, df: pd.DataFrame, name_field_map: dict[str, tuple[type, bool, bool, Field]]
+    ) -> list[str]:
+        """
+        Select columns in `df` that match the schema.
+
+        If a column is defined in the schema it *must* be present in `df`.
+        This function serves the important purpose of raising errors when
+        columns in `df` seem to be *missing* when compared to the schema.
+
+        Args:
+            df (pandas.DataFrame): The dataframe to select columns from.
+            name_field_map (dict): A dictionary mapping column names to their
+                corresponding Field objects.
+
+        Returns:
+            list: A list of column names in `df` that match the schema.
+
+        Raises:
+            SchemaDefinitionError: If a column or alias is not found in `df`, is already
+                matched by another field.
+            MissingColumnsError: If a column is defined in the schema but not
+                found in `df`.
+        """
+        matching_columns_in_df = []
+        for column, (_, optional, is_index, field) in name_field_map.items():
+            if is_index:
+                continue
+            if field.alias is not None:
+                if field.regex:
+                    matched = df.filter(regex=field.alias, axis=1).columns
+                    if len(matched) == 0 and not optional:
+                        raise MissingColumnsError(
+                            f"No columns match regex `{field.alias}` for field `{column}` in schema `{cls.__name__}`"
+                        )
+                    elif len(already_matched := set(matched) & set(matching_columns_in_df)) > 0:
+                        raise SchemaDefinitionError(
+                            f"Regex `{field.alias}` for field `{column}` in schema `{cls.__name__}` matched columns {already_matched} already matched by another field."
+                        )
+                    matching_columns_in_df.extend(matched)
+                else:
+                    if field.alias not in df.columns and not optional:
+                        raise MissingColumnsError(
+                            f"No columns match alias `{field.alias}` for field `{column}` in schema `{cls.__name__}`."
+                        )
+                    elif field.alias in matching_columns_in_df:
+                        raise SchemaDefinitionError(
+                            f"Alias `{field.alias}` for field `{column}` in schema `{cls.__name__}` is used by another field."
+                        )
+                    matching_columns_in_df.append(field.alias)
+            else:
+                if column not in df.columns and not optional:
+                    raise MissingColumnsError(f"No columns match column name `{column}` in schema `{cls.__name__}`.")
+                elif column in matching_columns_in_df:
+                    raise SchemaDefinitionError(
+                        f"Column `{column}` in schema `{cls.__name__}` is used by another field."
+                    )
+                matching_columns_in_df.append(column)
+        return matching_columns_in_df
 
     @classmethod
     def _validate_custom_checks(cls, df):
         for attr_name in dir(cls):
-
             attr = getattr(cls, attr_name)
             if not hasattr(attr, "__check__"):
                 continue
@@ -124,37 +258,32 @@ class DataFrameModel(BaseModel):
                     raise ValueError(f"DataFrame did not pass custom check `{attr_name}`")
                 continue
 
+            if any(undefined_columns := [c for c in check_columns if c not in cls.__annotations__]):
+                raise SchemaDefinitionError(
+                    f"Decorator on custom check `{attr_name}` references undefined columns {undefined_columns}. Values passed to the `check` decorator must reference columns defined in the schema."
+                )
+
             if attr.__regex__:
                 check_columns = get_matching_columns(df, check_columns)
 
             for column in check_columns:
-                series = cls._select_series_by_name(df, column)
-                if not attr(series):
+                if not attr(df[column]):
                     raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
 
     @classmethod
-    def _validate_columns(cls, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_columns(
+        cls, df: pd.DataFrame, name_field_map: dict[str, tuple[type, bool, bool, Field]], Config: BaseConfig
+    ) -> pd.DataFrame:
+        """Validate column names in `df` against the schema.
 
-        Config = cls._get_config()
-        schema_columns = cls._get_column_names()
-        column_fields = cls._get_fields()
+        Raise approproate errors if columns are missing or if there is an
+        overlap between columns that different schema fields match.
 
-        # Select columns in `df` that match the schema. This is not as simple
-        # as `df[schema_columns]` because there may be aliases and regex!
-        matching_columns_in_df = []
-        for column in schema_columns:
-            field = column_fields[column]
-            if field.alias is not None:
-                if field.regex:
-                    matching_columns_in_df.extend(matched := df.filter(regex=field.alias, axis=1).columns)
-                    if len(matched) == 0:
-                        raise KeyError(f"No columns in `df` match regex `{field.alias}` for field `{column}`")
-                else:
-                    matching_columns_in_df.append(field.alias)
-            else:
-                matching_columns_in_df.append(column)
-            if matching_columns_in_df[-1] not in df.columns:
-                raise KeyError(f"Column `{matching_columns_in_df[-1]}` was not found in dataframe")
+        This method also acts as a filter, that (depending on the config) will
+        pass `df` through with coerced types, filtered columns, ordered columns
+        or as-is.
+        """
+        matching_columns_in_df = cls._select_matching_columns(df, name_field_map)
 
         # Drop columns in `df` that do not match the schema
         if Config.filter:
@@ -220,7 +349,8 @@ class SeriesModel(BaseModel):
     def validate(cls, series: pd.Series):
         _, value_type = cls._get_value_name_and_type()
         field = cls._get_field()
-        cls._validate_series(series, field, value_type)
+        Config = cls._get_config()
+        cls._validate_series(series, field, value_type, Config.coerce)
 
 
 def get_matching_columns(df: pd.DataFrame, regexes: list[str]) -> list[str]:
