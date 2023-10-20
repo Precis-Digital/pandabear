@@ -9,7 +9,7 @@ from pandabear.exceptions import TypeHintError
 from pandabear.model import BaseModel
 
 
-def _validate_variable_against_type_hint(var: Any, type_hint: Any) -> Any:
+def _validate_variable_against_type_hint(var: Any, type_hint: Any, name: str) -> Any:
     """Validate a variable against a type hint.
 
     This function is used by the `check_types` decorator to validate
@@ -22,7 +22,6 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any) -> Any:
     Raises:
         TypeError: If the variable does not match the type hint.
     """
-    suggestion = "Check that your type hints and returned values match."
     # type hint like: `pd.DataFrame | MySchema`
     if (
         isinstance(type_hint, UnionType)
@@ -33,7 +32,7 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any) -> Any:
             expected_type = get_args(type_hint)[0].__name__
             expected_schema = type_hint.__args__[1].__name__
             raise TypeHintError(
-                f"Expected a {expected_type} with schema {expected_schema}, but found {type(var)}. {suggestion}"
+                f"Expected `{expected_type}[{expected_schema}]` in {f'argument `{name}`' if name != 'return value' else name}, but found {type(var)}"
             )
         schema = get_args(type_hint)[1]
         transformed_var = schema.validate(var)
@@ -41,12 +40,16 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any) -> Any:
     # type hint like: `tuple[int, pd.DataFrame | MySchema]` (or deeper nesting)
     elif (len(return_types := get_args(type_hint))) > 1:
         if type(var) not in [list, tuple]:
-            raise TypeHintError(f"Expected a `tuple` or `list`, but found {type(var)}. {suggestion}")
+            raise TypeHintError(
+                f"Expected a `tuple` or `list` in {f'argument `{name}`' if name != 'return value' else name}, but found {type(var)}"
+            )
         elif len(var) != len(return_types):
-            raise TypeHintError(f"Expected {len(return_types)} values, but found {len(var)}. {suggestion}")
+            raise TypeHintError(
+                f"Expected iterable of {len(return_types)} items in {f'argument `{name}`' if name != 'return value' else name}, but found {len(var)}"
+            )
         transformed_var = ()
         for var_i, type_hint_i in zip(var, return_types):
-            transformed_var += (_validate_variable_against_type_hint(var_i, type_hint_i),)
+            transformed_var += (_validate_variable_against_type_hint(var_i, type_hint_i, name),)
 
     # type hint is not a `DataFrameModel` subclass
     else:
@@ -97,7 +100,7 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
 
         for name, variable in bound_args.arguments.items():
             type_hint = sig.parameters[name].annotation
-            bound_args.arguments[name] = _validate_variable_against_type_hint(variable, type_hint)
+            bound_args.arguments[name] = _validate_variable_against_type_hint(variable, type_hint, name)
 
         # Extract `args` and `kwargs` from bound arguments
         args = bound_args.arguments.pop("args", {})
@@ -108,7 +111,7 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
         result = func(*bound_args.arguments.values(), *args, **kwargs)
 
         # Validate return value(s)
-        result = _validate_variable_against_type_hint(result, sig.return_annotation)
+        result = _validate_variable_against_type_hint(result, sig.return_annotation, "return value")
 
         return result
 

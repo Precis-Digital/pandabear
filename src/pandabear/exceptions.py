@@ -7,6 +7,11 @@ MAX_FAILURE_ROWS = 10
 
 
 class MissingColumnsError(Exception):
+    """Raise when `df` is missing columns defined in `schema`.
+
+    Is not raised if Config defines `strict=False` or `filter=True`.
+    """
+
     def __init__(self, message):
         # strip trailing "." and " " from message
         message = re.sub(r"[. ]+$", "", message)
@@ -15,6 +20,11 @@ class MissingColumnsError(Exception):
 
 
 class MissingIndexError(Exception):
+    """Raise when `df` is missing index levels defined in `schema`.
+
+    Is not raised if Config defines `strict=False` or `filter=True`.
+    """
+
     def __init__(self, message):
         # strip trailing "." and " " from message
         message = re.sub(r"[. ]+$", "", message)
@@ -23,26 +33,58 @@ class MissingIndexError(Exception):
 
 
 class SchemaDefinitionError(Exception):
+    """Raise when `schema` is not a valid schema definition.
+
+    This may happen if e.g. the user has a numerical check on a column with non-numerical values.
+    """
+
     def __init__(self, message):
         super().__init__(message)
 
 
 class SchemaValidationError(Exception):
+    """Raise when `df` does not match `schema`.
+
+    This is raised if `df` has unexpected columns of column dtypes don't match.
+    If Config defines `strict=False` or `filter=True` unexpected columns won't
+    raise an error, though.
+    """
+
     def __init__(self, message):
         super().__init__(message)
 
 
 class CoersionError(Exception):
+    """Raise when `df` cannot be coerced to `schema`.
+
+    This is raised if `df` has a column with a dtype that the schema defined
+    dtype cannot coerce. For example, if the schema defines a column as `int`
+    but the column contains `str` values, coersion will fail.
+    """
+
     def __init__(self, message):
         super().__init__(message)
 
 
 class TypeHintError(Exception):
+    """Raise when the function argument or return value is not of the expected type.
+
+    This could for example happen if the user provides an int to an argument with a
+    `DataFrame` or `Series` type hint. Of if the return type hint indicates multiple
+    return values, but the function only returns a single value.
+    """
+
     def __init__(self, message):
         super().__init__(message)
 
 
 class ColumnCheckError(Exception):
+    """Raise when a column check fails checks defined in `Field` variable.
+
+    Report the percentage of rows that failed the check, and display the first
+    few rows that failed the check.
+    """
+
     def __init__(self, check_name: str, check_value: Any, series: pd.Series, result: pd.Series):
         self.check_name = check_name
         self.check_value = check_value
