@@ -1,13 +1,14 @@
-import dataclasses
 import re
 from types import NoneType
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd
 
-from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP, ColumnCheckError
+from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
 from pandabear.exceptions import (
+    CoersionError,
+    ColumnCheckError,
     MissingColumnsError,
     MissingIndexError,
     SchemaDefinitionError,
@@ -61,9 +62,12 @@ class BaseModel:
 
         if se.dtype != dtype:
             if coerce:
-                se = se.astype(typ)
+                try:
+                    se = se.astype(typ)
+                except ValueError:
+                    raise CoersionError(f"Could not coerce `{se.name}` with dtype {se.dtype} to {dtype}")
             else:
-                raise TypeError(f"Expected `{se.name}` with dtype {dtype} but found {se.dtype}")
+                raise SchemaValidationError(f"Expected `{se.name}` with dtype {dtype} but found {se.dtype}")
 
         for check_name, check_func in CHECK_NAME_FUNCTION_MAP.items():
             check_value = getattr(field, check_name)
@@ -119,6 +123,23 @@ class DataFrameModel(BaseModel):
         return typ, optional
 
     @staticmethod
+    def override_level(
+        index: pd.MultiIndex | pd.Index, index_level: str, series: pd.Series
+    ) -> pd.MultiIndex | pd.Index:
+        """Override a level in a MultiIndex or Index with a new series."""
+        if isinstance(index, pd.MultiIndex):
+            df_reset = index.to_frame(index=False)
+            if index_level not in df_reset.columns:
+                raise ValueError(f"Index level '{index_level}' not found in MultiIndex.")
+            df_reset[index_level] = series.values
+            new_index = pd.MultiIndex.from_frame(df_reset)
+        else:
+            if index.name != index_level:
+                raise ValueError(f"Index name '{index.name}' does not match given index_level '{index_level}'.")
+            new_index = pd.Index(series.values, name=index_level)
+        return new_index
+
+    @staticmethod
     def _select_index_series(df: pd.DataFrame, level: str, optional: bool = True) -> list[pd.Series]:
         """Select a series from a dataframe by column name.
 
@@ -153,6 +174,15 @@ class DataFrameModel(BaseModel):
                 optional
             ), "This should not happen. Looks like columns were not properly filtered in `_validate_columns`"
             return []
+
+    @staticmethod
+    def _select_index_series_by_regex(df: pd.DataFrame, alias: str) -> list[pd.Series]:
+        """Select a series from a dataframe by regex."""
+        return [
+            df.index.get_level_values(level).to_series()
+            for level in df.index.names
+            if re.match(alias, level) is not None
+        ]
 
     @staticmethod
     def _select_series_by_regex(df: pd.DataFrame, alias: str) -> list[pd.Series]:
@@ -190,6 +220,46 @@ class DataFrameModel(BaseModel):
             for column in check_columns:
                 if not attr(df[column]):
                     raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
+
+    @classmethod
+    def _validate_schema(cls, schema_map: dict[str, tuple[type, bool, bool, Field]]):
+        """Validate the schema map.
+
+        This method will raise errors if there are obvious problems with the
+        schema, like e.g. missing aliases when regex=True, number checks on
+        non-numeric columns, etc.
+        """
+        for name, (typ, optional, is_index, field) in schema_map.items():
+            # Check that regex is not used when alias is not defined
+            if field.regex and field.alias is None:
+                raise SchemaDefinitionError(
+                    f"Regex is used for `{name}` in schema `{cls.__name__}`, but no alias is defined."
+                )
+
+            # Check that number checks are not used on non-numeric columns
+            if any(
+                [
+                    field.ge is not None,
+                    field.gt is not None,
+                    field.le is not None,
+                    field.lt is not None,
+                ]
+            ) and typ not in [int, float]:
+                raise SchemaDefinitionError(
+                    f"Numerical check is used for `{name}` in schema `{cls.__name__}`, but the field is not numeric."
+                )
+
+            # Check that string checks arenot used on non-string columns
+            if any(
+                [
+                    field.str_contains is not None,
+                    field.str_endswith is not None,
+                    field.str_startswith is not None,
+                ]
+            ) and typ not in [str]:
+                raise SchemaDefinitionError(
+                    f"String check is used for `{name}` in schema `{cls.__name__}`, but the field is not a string."
+                )
 
     @classmethod
     def _validate_multiindex(
@@ -366,6 +436,10 @@ class DataFrameModel(BaseModel):
         schema_map = cls._get_schema_map()
         Config = cls._get_config()
 
+        # Validate schema definition. Catch errors like, e.g., missing aliases
+        # when regex=True, number checks on non-numeric columns, etc.
+        cls._validate_schema(schema_map)
+
         # Check that indices and columns in `df` match schema. The only errors
         # that should be thrown here relate to schema errors or missing columns
         # in `df`. Furthermore, this method may filter, coerce or order `df`
@@ -373,15 +447,16 @@ class DataFrameModel(BaseModel):
         df = cls._validate_multiindex(df, schema_map, Config)
         df = cls._validate_columns(df, schema_map, Config)
 
-        # Validate `df` against schema. The only errors that should be raises
-        # in this step are from dtype checks and `Field` checks:
+        # Validate `df` against schema. The only errors that should be raised
+        # in this step are from dtype checks and `Field` checks.
         for name, (typ, optional, is_index, field) in schema_map.items():
             # Select the column (or columns) in `df` that match the field.
             # ... when index column
             if is_index:
-                matched_series = cls._select_index_series(df, field.alias or name, optional)
-                if field.regex:
-                    raise NotImplementedError("Regex not implemented for index aliases")
+                if field.regex and field.alias is not None:
+                    matched_series = cls._select_index_series_by_regex(df, field.alias)
+                else:
+                    matched_series = cls._select_index_series(df, field.alias or name, optional)
 
             # ... when column has aliased name
             elif field.alias is not None:
@@ -396,9 +471,12 @@ class DataFrameModel(BaseModel):
 
             # Validate the selected column(s) against the field and type.
             for series in matched_series:
-                series = cls._validate_series(series, field, typ, Config.coerce)
-                if Config.coerce:
-                    df[series.name] = series
+                series = cls._validate_series(series, field, typ, Config.coerce or field.coerce)
+                if Config.coerce or field.coerce:
+                    if is_index:
+                        df.index = cls.override_level(df.index, series.name, series)
+                    else:
+                        df[series.name] = series
 
         cls._validate_custom_checks(df)
 

@@ -22,6 +22,7 @@ class Field:
     # Column name checks
     alias: str = None
     regex: bool = False
+    coerce: bool = False
 
 
 @dataclasses.dataclass

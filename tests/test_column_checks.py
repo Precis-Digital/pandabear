@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 
 from pandabear.column_checks import (
-    ColumnCheckError,
     series_greater,
     series_greater_equal,
     series_isin,
@@ -15,6 +14,7 @@ from pandabear.column_checks import (
     series_str_endswith,
     series_str_startswith,
 )
+from pandabear.exceptions import ColumnCheckError
 
 
 def test_series_greater_equal():

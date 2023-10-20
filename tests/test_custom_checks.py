@@ -5,7 +5,6 @@ from pandabear import DataFrameModel, Field, check
 from pandabear.exceptions import SchemaDefinitionError
 
 
-@pytest.mark.custom_checks
 class TestCustomChecksSuccessDataFrame:
     def test___custom_checks__success__dataframe__1(self):
         """Test that the custom checks works for series."""
@@ -70,7 +69,6 @@ class TestCustomChecksSuccessDataFrame:
         MySchema.validate(df)
 
 
-@pytest.mark.custom_checks
 class TestCustomChecksFailureDataFrame:
     def test___custom_checks__failure__dataframe__1(self):
         """Test that the custom checks fails when check does not pass."""
