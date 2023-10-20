@@ -5,7 +5,7 @@ class Index:
         return cls | typ
 
 
-def check_type_is_index(t):
+def type_is_index(t):
     if hasattr(t, "__args__"):
         if t.__args__[0] is Index:
             return True

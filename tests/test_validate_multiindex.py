@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from pandabear.exceptions import MissingIndexError, SchemaValidationError
 from pandabear.index_type import Index
 from pandabear.model import DataFrameModel, SeriesModel
 from pandabear.model_components import Field
@@ -38,52 +39,52 @@ def test_no_index_schema__passing():
     df = pd.DataFrame(dict(a=[1], b=[1.0]))
 
     # 1. passes
-    NoIndexSchema._validate_multiindex(df)
+    NoIndexSchema._validate_multiindex(df, NoIndexSchema._get_schema_map(), NoIndexSchema._get_config())
 
     # 2. Strict
     NoIndexSchema.Config = IndexStrictConfig
-    NoIndexSchema._validate_multiindex(df)
+    NoIndexSchema._validate_multiindex(df, NoIndexSchema._get_schema_map(), NoIndexSchema._get_config())
 
     # 3. Ordered
     NoIndexSchema.Config = IndexOrderedConfig
-    NoIndexSchema._validate_multiindex(df)
+    NoIndexSchema._validate_multiindex(df, NoIndexSchema._get_schema_map(), NoIndexSchema._get_config())
 
     # 4. Sorted
     NoIndexSchema.Config = IndexSortedConfig
-    NoIndexSchema._validate_multiindex(df)
+    NoIndexSchema._validate_multiindex(df, NoIndexSchema._get_schema_map(), NoIndexSchema._get_config())
 
     # 5. Unique
     NoIndexSchema.Config = IndexUniqueConfig
-    NoIndexSchema._validate_multiindex(df)
+    NoIndexSchema._validate_multiindex(df, NoIndexSchema._get_schema_map(), NoIndexSchema._get_config())
 
 
 def test_no_index_schema__failing():
     df = pd.DataFrame(dict(a=[1, 2], b=[1.0, 2.0]), index=pd.Index([1, 2], name="index"))
-    with pytest.raises(ValueError):
-        NoIndexSchema._validate_multiindex(df)
+    with pytest.raises(SchemaValidationError):
+        NoIndexSchema._validate_multiindex(df, NoIndexSchema._get_schema_map(), NoIndexSchema._get_config())
 
 
 def test_index_schema__passing():
     df = pd.DataFrame(dict(a=[1, 2, 3], b=[1.0, 2.0, 3.0]), index=pd.Index([1, 2, 3], name="index"))
 
     # 1. passes
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 2. Strict
     IndexSchema.Config = IndexStrictConfig
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 3. Ordered
     IndexSchema.Config = IndexOrderedConfig
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 4. Sorted
     IndexSchema.Config = IndexSortedConfig
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 5. Unique
     IndexSchema.Config = IndexUniqueConfig
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
 
 def test_index_schema__failing_sorting_unique():
@@ -95,25 +96,25 @@ def test_index_schema__failing_sorting_unique():
         b: float = Field()
 
     # 1. passes
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 2. Strict
     IndexSchema.Config = IndexStrictConfig
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 3. Ordered
     IndexSchema.Config = IndexOrderedConfig
-    IndexSchema._validate_multiindex(df)
+    IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 4. Sorted fails
-    with pytest.raises(ValueError):
+    with pytest.raises(SchemaValidationError):
         IndexSchema.Config = IndexSortedConfig
-        IndexSchema._validate_multiindex(df)
+        IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
     # 5. Unique, failing
-    with pytest.raises(ValueError):
+    with pytest.raises(SchemaValidationError):
         IndexSchema.Config = IndexUniqueConfig
-        IndexSchema._validate_multiindex(df)
+        IndexSchema._validate_multiindex(df, IndexSchema._get_schema_map(), IndexSchema._get_config())
 
 
 def test_multiindex_schema__passing():
@@ -128,19 +129,19 @@ def test_multiindex_schema__passing():
     )
 
     # 1. passes
-    MultiIndexSchema._validate_multiindex(df)
+    MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 2. ordered
     MultiIndexSchema.Config = IndexOrderedConfig
-    MultiIndexSchema._validate_multiindex(df)
+    MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 3. sorted
     MultiIndexSchema.Config = IndexSortedConfig
-    MultiIndexSchema._validate_multiindex(df)
+    MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 4. unique
     MultiIndexSchema.Config = IndexUniqueConfig
-    MultiIndexSchema._validate_multiindex(df)
+    MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
 
 def test_multiindex_schema__failing():
@@ -155,28 +156,28 @@ def test_multiindex_schema__failing():
     )
 
     # 1. passes
-    MultiIndexSchema._validate_multiindex(df)
+    MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 3. sorted
-    with pytest.raises(ValueError):
+    with pytest.raises(SchemaValidationError):
         MultiIndexSchema.Config = IndexSortedConfig
-        MultiIndexSchema._validate_multiindex(df)
+        MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 4. unique
-    with pytest.raises(ValueError):
+    with pytest.raises(SchemaValidationError):
         MultiIndexSchema.Config = IndexUniqueConfig
-        MultiIndexSchema._validate_multiindex(df)
+        MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 2. ordered, passing
     MultiIndexSchema.Config = IndexOrderedConfig
-    MultiIndexSchema._validate_multiindex(df)
+    MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     # 2. ordered, failing
-    with pytest.raises(ValueError):
+    with pytest.raises(SchemaValidationError):
         MultiIndexSchema.Config = IndexOrderedConfig
         df.index.names = ["ix1", "ix0"]
-        MultiIndexSchema._validate_multiindex(df)
+        MultiIndexSchema._validate_multiindex(df, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
 
     df2 = df.reset_index()
-    with pytest.raises(ValueError):
-        MultiIndexSchema._validate_multiindex(df2)
+    with pytest.raises(MissingIndexError):
+        MultiIndexSchema._validate_multiindex(df2, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
