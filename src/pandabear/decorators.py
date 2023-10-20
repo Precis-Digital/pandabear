@@ -5,10 +5,11 @@ from typing import Any, Callable, get_args
 
 import pandas as pd
 
+from pandabear.exceptions import TypeHintError
 from pandabear.model import BaseModel
 
 
-def _validate_variable_against_type_hint(var: Any, type_hint: Any):
+def _validate_variable_against_type_hint(var: Any, type_hint: Any) -> Any:
     """Validate a variable against a type hint.
 
     This function is used by the `check_types` decorator to validate
@@ -29,16 +30,20 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any):
         and issubclass(get_args(type_hint)[1], BaseModel)
     ):
         if not type(var) in [pd.DataFrame, pd.Series]:
-            raise TypeError(f"Expected a pandas dataframe or series, but found {type(var)}. {suggestion}")
+            expected_type = get_args(type_hint)[0].__name__
+            expected_schema = type_hint.__args__[1].__name__
+            raise TypeHintError(
+                f"Expected a {expected_type} with schema {expected_schema}, but found {type(var)}. {suggestion}"
+            )
         schema = get_args(type_hint)[1]
         transformed_var = schema.validate(var)
 
     # type hint like: `tuple[int, pd.DataFrame | MySchema]` (or deeper nesting)
     elif (len(return_types := get_args(type_hint))) > 1:
         if type(var) not in [list, tuple]:
-            raise TypeError(f"Expected an array-like, but found {type(var)}. {suggestion}")
+            raise TypeHintError(f"Expected a `tuple` or `list`, but found {type(var)}. {suggestion}")
         elif len(var) != len(return_types):
-            raise TypeError(f"Expected {len(return_types)} values, but found {len(var)}. {suggestion}")
+            raise TypeHintError(f"Expected {len(return_types)} values, but found {len(var)}. {suggestion}")
         transformed_var = ()
         for var_i, type_hint_i in zip(var, return_types):
             transformed_var += (_validate_variable_against_type_hint(var_i, type_hint_i),)
@@ -94,8 +99,13 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
             type_hint = sig.parameters[name].annotation
             bound_args.arguments[name] = _validate_variable_against_type_hint(variable, type_hint)
 
+        # Extract `args` and `kwargs` from bound arguments
+        args = bound_args.arguments.pop("args", {})
+        kwargs = bound_args.arguments.pop("kwargs", {})
+
         # Execute the function
-        result = func(**bound_args.arguments)
+        # result = func(*args, **kwargs)
+        result = func(*bound_args.arguments.values(), *args, **kwargs)
 
         # Validate return value(s)
         result = _validate_variable_against_type_hint(result, sig.return_annotation)

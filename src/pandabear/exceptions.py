@@ -25,3 +25,8 @@ class SchemaDefinitionError(Exception):
 class SchemaValidationError(Exception):
     def __init__(self, message):
         super().__init__(message)
+
+
+class TypeHintError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
