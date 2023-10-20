@@ -326,7 +326,7 @@ class DataFrameModel(BaseModel):
         # Drop columns in `df` that do not match the schema
         if Config.filter:
             ordered_columns_in_df = [col for col in df.columns if col in matching_columns_in_df]
-            df = df.copy()[ordered_columns_in_df]
+            df = df[ordered_columns_in_df].copy()
 
         # Complain about columns in `df` that are not defined in the schema
         elif Config.strict:
