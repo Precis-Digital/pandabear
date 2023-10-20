@@ -1,3 +1,9 @@
+## v0.5.0 (2023-10-20)
+
+### Feat
+
+- Support recursive filtering to function i/o
+
 ## v0.4.0 (2023-10-20)
 
 ### Feat

@@ -1,4 +1,4 @@
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 
 # Set default logging handler to avoid "No handler found" warnings.
