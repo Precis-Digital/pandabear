@@ -374,28 +374,27 @@ class DataFrameModel(BaseModel):
                 continue
             elif not is_index and match_index:
                 continue
-            if field.alias is not None:
-                if field.regex:
-                    matched = [name for name in names if re.match(field.alias, name)]
-                    if len(matched) == 0 and not optional:
-                        raise MissingNameError(
-                            f"No {series_type}s match regex `{field.alias}` for field `{series_name}` in schema `{cls.__name__}`"
-                        )
-                    elif len(already_matched := set(matched) & set(matching_names)) > 0:
-                        raise SchemaDefinitionError(
-                            f"Regex `{field.alias}` for field `{series_name}` in schema `{cls.__name__}` matched {series_type}s {already_matched} already matched by another field."
-                        )
-                    matching_names.extend(matched)
-                else:
-                    if field.alias not in names and not optional:
-                        raise MissingNameError(
-                            f"No {series_type}s match alias `{field.alias}` for field `{series_name}` in schema `{cls.__name__}`."
-                        )
-                    elif field.alias in matching_names:
-                        raise SchemaDefinitionError(
-                            f"Alias `{field.alias}` for field `{series_name}` in schema `{cls.__name__}` is used by another field."
-                        )
-                    matching_names.append(field.alias)
+            if field.alias is not None and field.regex:
+                matched = [name for name in names if re.match(field.alias, name)]
+                if len(matched) == 0 and not optional:
+                    raise MissingNameError(
+                        f"No {series_type}s match regex `{field.alias}` for field `{series_name}` in schema `{cls.__name__}`"
+                    )
+                elif len(already_matched := set(matched) & set(matching_names)) > 0:
+                    raise SchemaDefinitionError(
+                        f"Regex `{field.alias}` for field `{series_name}` in schema `{cls.__name__}` matched {series_type}s {already_matched} already matched by another field."
+                    )
+                matching_names.extend(matched)
+            elif field.alias is not None and field.regex is False:
+                if field.alias not in names and not optional:
+                    raise MissingNameError(
+                        f"No {series_type}s match alias `{field.alias}` for field `{series_name}` in schema `{cls.__name__}`."
+                    )
+                elif field.alias in matching_names:
+                    raise SchemaDefinitionError(
+                        f"Alias `{field.alias}` for field `{series_name}` in schema `{cls.__name__}` is used by another field."
+                    )
+                matching_names.append(field.alias)
             else:
                 if series_name not in names and not optional:
                     raise MissingNameError(

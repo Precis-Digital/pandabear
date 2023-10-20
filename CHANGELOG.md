@@ -1,3 +1,42 @@
+## v0.5.1 (2023-10-20)
+
+### Fix
+
+- recursive filtering did not play nice with *args and **kwargs. fix that
+
+## v0.5.0 (2023-10-20)
+
+### Feat
+
+- Support recursive filtering to function i/o
+
+## v0.4.0 (2023-10-20)
+
+### Feat
+
+- 1) Add support for `Optional` columns in schema definitions. Add tests too. 2) Add custom errors when columns are missing and when schema definition is wrong. 3) Non-small refactor in model.py. Move colunm checks to top and simplify some things (more can be done though)
+
+### Fix
+
+- Remove `regex` optional argument from `check` custom check decorator
+
+### Refactor
+
+- Decreate nesting in _select_matching_names
+- Refactor `_validate_multiindex` so it works like `_validate_columns` (also refactored a bit), and overall simplifies the code
+
+## v0.3.3 (2023-10-17)
+
+### Fix
+
+- Do not coerce order when when Config.filter = True
+- remove typo
+- Cast df.index as series
+
+### Refactor
+
+- StrictConfig not reused, move into schema
+
 ## v0.3.2 (2023-10-13)
 
 ### Fix

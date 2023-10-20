@@ -3,6 +3,8 @@ from typing import Any
 
 import pandas as pd
 
+MAX_FAILURE_ROWS = 10
+
 
 class MissingColumnsError(Exception):
     def __init__(self, message):
@@ -35,7 +37,9 @@ class CoersionError(Exception):
         super().__init__(message)
 
 
-MAX_FAILURE_ROWS = 10
+class TypeHintError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
 
 
 class ColumnCheckError(Exception):

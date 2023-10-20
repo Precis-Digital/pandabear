@@ -21,7 +21,7 @@ import pandas as pd
 import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field, Series, SeriesModel, check_types
-from pandabear.exceptions import ColumnCheckError
+from pandabear.exceptions import ColumnCheckError, TypeHintError
 
 
 # Define a custom dataframe schema
@@ -203,6 +203,65 @@ class TestBaseCasesSuccessDataFrame:
         assert "column_c" not in dfs_out[1][0].columns
         assert "column_c" not in dfs_out[1][1].columns
 
+    def test___base_case__success__dataframe__filtering__3(self):
+        """Test that filtering plays nice with non-DataFrame arguments."""
+
+        class MySchemaMissingColumnC(DataFrameModel):
+            column_a: int = Field(gt=0)
+            column_b: str = Field(str_contains="foo")
+            my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
+
+            class Config:
+                filter = True
+
+        @check_types
+        def my_function(
+            df: DataFrame[MySchemaMissingColumnC], value: int
+        ) -> tuple[DataFrame[MySchemaMissingColumnC], int]:
+            assert "column_c" not in df.columns
+            assert value == 1
+            return df, value
+
+        output = my_function(df, 1)
+        assert "column_c" not in output[0].columns
+        assert output[1] == 1
+
+    def test___base_case__success__dataframe__filtering__4(self):
+        """Test that filtering plays nice with non-DataFrame unspecified arguments."""
+
+        class MySchemaMissingColumnC(DataFrameModel):
+            column_a: int = Field(gt=0)
+            column_b: str = Field(str_contains="foo")
+            my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
+
+            class Config:
+                filter = True
+
+        @check_types
+        def my_function(df: DataFrame[MySchemaMissingColumnC], *args):
+            assert "column_c" not in df.columns
+            assert args == ("lol",)
+
+        my_function(df, "lol")
+
+    def test___base_case__success__dataframe__filtering__5(self):
+        """Test that filtering plays nice with non-DataFrame keyword arguments."""
+
+        class MySchemaMissingColumnC(DataFrameModel):
+            column_a: int = Field(gt=0)
+            column_b: str = Field(str_contains="foo")
+            my_prefix_column: int = Field(alias="my_prefix.+", regex=True, ge=0)
+
+            class Config:
+                filter = True
+
+        @check_types
+        def my_function(df: DataFrame[MySchemaMissingColumnC], **kwargs):
+            assert "column_c" not in df.columns
+            assert kwargs == {"lol": 1}
+
+        my_function(df, lol=1)
+
 
 class TestBaseCasesSuccessSeries:
     def test___base_case__success__series(self):
@@ -304,7 +363,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_in__1(self):
         """Test that the base case fails for dataframes, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(tup: tuple[DataFrame[MySchema], DataFrame[MySchema]]) -> DataFrame[MySchema]:
@@ -314,7 +373,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_in__2(self):
         """Test that the base case fails for dataframes, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(df: DataFrame[MySchema]) -> DataFrame[MySchema]:
@@ -324,7 +383,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_in__3(self):
         """Test that the base case fails for dataframes, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(tup: tuple[DataFrame[MySchema], DataFrame[MySchema]]) -> DataFrame[MySchema]:
@@ -334,7 +393,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_in__4(self):
         """Test that the base case fails for dataframes, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(
@@ -347,7 +406,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_out__1(self):
         """Test that the base case fails for dataframes, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(df: DataFrame[MySchema]) -> tuple[DataFrame[MySchema], DataFrame[MySchema]]:
@@ -357,7 +416,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_out__2(self):
         """Test that the base case fails for dataframes, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(df: DataFrame[MySchema]) -> DataFrame[MySchema]:
@@ -367,7 +426,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_out__3(self):
         """Test that the base case fails for dataframes, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(df: DataFrame[MySchema]) -> tuple[DataFrame[MySchema], DataFrame[MySchema]]:
@@ -377,7 +436,7 @@ class TestBaseCaseFailureDataFrame:
 
     def test___base_case__failure__dataframe__mismatch_out__4(self):
         """Test that the base case fails for dataframes, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(
@@ -435,7 +494,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_in__1(self):
         """Test that the base case fails for series, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(tup: tuple[Series[MySeries], Series[MySeries]]) -> Series[MySeries]:
@@ -445,7 +504,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_in__2(self):
         """Test that the base case fails for series, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(se: Series[MySeries]) -> Series[MySeries]:
@@ -455,7 +514,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_in__3(self):
         """Test that the base case fails for series, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(tup: tuple[Series[MySeries], Series[MySeries]]) -> Series[MySeries]:
@@ -465,7 +524,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_in__4(self):
         """Test that the base case fails for series, when input type hints do not match argument values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(
@@ -478,7 +537,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_out__1(self):
         """Test that the base case fails for series, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(se: Series[MySeries]) -> tuple[Series[MySeries], Series[MySeries]]:
@@ -488,7 +547,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_out__2(self):
         """Test that the base case fails for series, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(se: Series[MySeries]) -> Series[MySeries]:
@@ -498,7 +557,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_out__3(self):
         """Test that the base case fails for series, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(se: Series[MySeries]) -> tuple[Series[MySeries], Series[MySeries]]:
@@ -508,7 +567,7 @@ class TestBaseCaseFailureSeries:
 
     def test___base_case__failure__series__mismatch_out__4(self):
         """Test that the base case fails for series, when output type hints do not match return values."""
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeHintError):
 
             @check_types
             def my_function(
