@@ -1,3 +1,9 @@
+## v0.5.1 (2023-10-20)
+
+### Fix
+
+- recursive filtering did not play nice with *args and **kwargs. fix that
+
 ## v0.5.0 (2023-10-20)
 
 ### Feat
