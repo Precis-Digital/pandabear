@@ -21,7 +21,7 @@ import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field
 from pandabear.exceptions import MissingColumnsError
-from pandabear.index_type import Index
+from pandabear.model_components import Index
 
 
 class TestOptionalSuccess:

@@ -14,8 +14,7 @@ from pandabear.exceptions import (
     SchemaDefinitionError,
     SchemaValidationError,
 )
-from pandabear.index_type import get_index_dtype, type_is_index
-from pandabear.model_components import BaseConfig, Field
+from pandabear.model_components import BaseConfig, Field, FieldInfo, Index
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
@@ -80,7 +79,7 @@ class BaseModel:
 
 class DataFrameModel(BaseModel):
     @classmethod
-    def _get_schema_map(cls) -> dict[str, tuple[type, bool, bool, Field]]:
+    def _get_schema_map(cls) -> dict[str, FieldInfo]:
         """Get a convenient representation of the schema.
 
         This method builds a dictionary that maps index/column names to a
@@ -107,8 +106,9 @@ class DataFrameModel(BaseModel):
         for name, typ in cls.__annotations__.items():
             typ, optional = cls._check_optional_type(typ)
             is_index = False
-            if type_is_index(typ):
-                typ = get_index_dtype(typ)
+            if hasattr(typ, "__args__") and typ.__args__[0] is Index:
+                # `typ` is like `Union[Index, int]` (meaning the user provided `Index[int]`)
+                typ = typ.__args__[1]
                 is_index = True
             schema_map[name] = (typ, optional, is_index, getattr(cls, name) if hasattr(cls, name) else Field())
         return schema_map
@@ -222,7 +222,7 @@ class DataFrameModel(BaseModel):
                     raise ValueError(f"Column `{column}` did not pass custom check `{attr_name}`")
 
     @classmethod
-    def _validate_schema(cls, schema_map: dict[str, tuple[type, bool, bool, Field]]):
+    def _validate_schema(cls, schema_map: dict[str, FieldInfo]):
         """Validate the schema map.
 
         This method will raise errors if there are obvious problems with the
@@ -263,7 +263,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def _validate_multiindex(
-        cls, df: pd.DataFrame, schema_map: dict[str, tuple[type, bool, bool, Field]], Config: BaseConfig
+        cls, df: pd.DataFrame, schema_map: dict[str, FieldInfo], Config: BaseConfig
     ) -> pd.DataFrame:
         """Validate index levels in `df` against the schema.
 
@@ -311,9 +311,7 @@ class DataFrameModel(BaseModel):
         return df
 
     @classmethod
-    def _validate_columns(
-        cls, df: pd.DataFrame, schema_map: dict[str, tuple[type, bool, bool, Field]], Config: BaseConfig
-    ) -> pd.DataFrame:
+    def _validate_columns(cls, df: pd.DataFrame, schema_map: dict[str, FieldInfo], Config: BaseConfig) -> pd.DataFrame:
         """Validate column names in `df` against the schema.
 
         Raise approproate errors if columns are missing or if there is an
@@ -349,7 +347,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def _select_matching_names(
-        cls, names: list[str], schema_map: dict[str, tuple[type, bool, bool, Field]], match_index: bool = False
+        cls, names: list[str], schema_map: dict[str, FieldInfo], match_index: bool = False
     ) -> list[str]:
         """Select columns or index levels in `names` that match the schema.
 

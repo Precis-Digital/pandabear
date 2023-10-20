@@ -2,9 +2,8 @@ import pandas as pd
 import pytest
 
 from pandabear.exceptions import MissingIndexError, SchemaValidationError
-from pandabear.index_type import Index
-from pandabear.model import DataFrameModel, SeriesModel
-from pandabear.model_components import Field
+from pandabear.model import DataFrameModel
+from pandabear.model_components import Field, Index
 
 
 class IndexStrictConfig:

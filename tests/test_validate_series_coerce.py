@@ -2,9 +2,8 @@ import pandas as pd
 import pytest
 
 from pandabear.exceptions import CoersionError, SchemaValidationError
-from pandabear.index_type import Index
 from pandabear.model import TYPE_DTYPE_MAP, DataFrameModel
-from pandabear.model_components import Field
+from pandabear.model_components import Field, Index
 
 
 def test_coerce_base_case():

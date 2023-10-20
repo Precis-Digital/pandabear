@@ -8,7 +8,6 @@ from logging import NullHandler
 logging.getLogger(__name__).addHandler(NullHandler())
 
 from pandabear.decorators import check, check_types, dataframe_check
-from pandabear.index_type import Index
 from pandabear.model import DataFrameModel, SeriesModel
-from pandabear.model_components import Field
+from pandabear.model_components import Field, Index
 from pandabear.typehints import DataFrame, Series

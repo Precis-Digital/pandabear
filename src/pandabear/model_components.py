@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Any
+from typing import Any, NamedTuple, Type
 
 
 @dataclasses.dataclass
@@ -66,3 +66,17 @@ class BaseConfig:
                 expeced_typ = annotations[name]
                 if not isinstance(value, expeced_typ):
                     raise TypeError(f"Config field `{name}` expected type {expeced_typ} but found {type(value)}")
+
+
+class Index:
+    @classmethod
+    def __class_getitem__(cls, typ):
+        """Only for "marking" index columns as part of index."""
+        return cls | typ
+
+
+class FieldInfo(NamedTuple):
+    type: Type
+    optional: bool
+    is_index: bool
+    field: Field
