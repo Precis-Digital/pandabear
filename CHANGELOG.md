@@ -1,3 +1,9 @@
+## v0.6.1 (2023-10-20)
+
+### Refactor
+
+- Create FieldInfo type. Some ad-hoc refactoring too
+
 ## v0.6.0 (2023-10-20)
 
 ### Feat
