@@ -1,3 +1,13 @@
+## v0.6.0 (2023-10-20)
+
+### Feat
+
+- Index series are now also coerced, whether they are df.index or level in multiindex
+
+### Fix
+
+- resolve merge with main
+
 ## v0.5.1 (2023-10-20)
 
 ### Fix
