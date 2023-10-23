@@ -12,7 +12,7 @@ class DataFrame(pd.DataFrame, DataFrameModel):
 
         Setting `DataFrame[MySchema]` to return `pd.DataFrame | MySchema` allows
         `pandabear` to play nice with other runtime type checkers such as `pydantic`
-        and `beartype`. Notice how the `check_types` decorator handles type hints
+        and `beartype`. Notice how the `check_schemas` decorator handles type hints
         in case the the value is a `pd.DataFrame`. It will check if the type hint
         is a `pd.DataFrame | MySchema` and if so, it will validate the dataframe
         against `MySchema`.
@@ -27,7 +27,7 @@ class Series(pd.Series, SeriesModel):
 
         Setting e.g. `Series[MySeries]` to return `pd.Series | MySeries` allows
         `pandabear` to play nice with other runtime type checkers such as `pydantic`
-        and `beartype`. Notice how the `check_types` decorator handles type hints
+        and `beartype`. Notice how the `check_schemas` decorator handles type hints
         in case the the value is a `pd.Series`. It will check if the type hint
         is a `pd.Series | MySeries` and if so, it will validate the Series
         against `MySeries`.

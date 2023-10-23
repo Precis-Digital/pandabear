@@ -14,7 +14,7 @@ An runtime schema validator for Pandas DataFrames.
 
 
 ### Usage
-- See the [examples](./examples) directory for detailed demo 
+- See the [examples](../../examples) directory for detailed demo 
 - Install to a repo/project:
     - In your `requirements.txt` file add a line specifying the `--extra-index-url` value followed by the python package and version as usual:
   ```

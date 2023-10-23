@@ -12,7 +12,7 @@ from pandabear.model import BaseModel
 def _validate_variable_against_type_hint(var: Any, type_hint: Any, name: str) -> Any:
     """Validate a variable against a type hint.
 
-    This function is used by the `check_types` decorator to validate
+    This function is used by the `check_schemas` decorator to validate
     input arguments and return values of a function.
 
     Args:
@@ -58,7 +58,7 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any, name: str) ->
     return transformed_var
 
 
-def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
+def check_schemas(func: Callable[..., Any]) -> Callable[..., Any]:
     """Main decorator for validating schemas of input and return dataframes.
 
     This decorator is used to validate the dataframe schema of input arguments
@@ -77,12 +77,12 @@ def check_types(func: Callable[..., Any]) -> Callable[..., Any]:
             type hints.
 
     Examples:
-        >>> from pandabear import DataFrameModel, Field, check_types
+        >>> from pandabear import DataFrameModel, Field, check_schemas
         >>>
         >>> class MySchema(DataFrameModel):
         >>>     column_a: int = Field()
         >>>
-        >>> @check_types
+        >>> @check_schemas
         >>> def my_func(df: MySchema) -> MySchema:
         >>>     return df
         >>>

@@ -81,7 +81,7 @@
 
 ### Fix
 
-- `check_types` did not work for many use cases. This commit greatly simplifies how it works: now uses recursive function to check inputs at arbitrary depth, both in input and output
+- `check_schemas` did not work for many use cases. This commit greatly simplifies how it works: now uses recursive function to check inputs at arbitrary depth, both in input and output
 
 ### Refactor
 
