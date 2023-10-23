@@ -47,3 +47,4 @@ def is_of_type(series_or_index, typ):
         return TYPE_CHECK_MAP[typ](series_or_index, typ)
     if isinstance(typ, type(pd.CategoricalDtype())):
         return check_dtype_equality(series_or_index, typ)
+    check_dtype_equality(series_or_index, typ)
