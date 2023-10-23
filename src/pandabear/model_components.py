@@ -4,8 +4,26 @@ from typing import Any, NamedTuple, Type
 
 @dataclasses.dataclass
 class Field:
-    ''' TODO add docstring to descripe what ge, gt, lt, and le stand for..
-    '''
+    """Class for defining a schema for a column (or group thereof) in a dataframe.
+
+    Args:
+        typ: The type of the column. If None, the type is not checked.
+        ge: Greater than or equal to.
+        gt: Greater than.
+        le: Less than or equal to.
+        lt: Less than.
+        isin: Checks if the column is in the given list.
+        notin: Checks if the column is not in the given list.
+        str_contains: Checks if the column contains the given string.
+        str_startswith: Checks if the column starts with the given string.
+        str_endswith: Checks if the column ends with the given string.
+        notnull: Checks if the column is not null.
+        null: Checks if the column is null.
+        unique: Checks if the column is unique.
+        alias: Alias for the column name. Can be a regex.
+        regex: Whether or not the alias is a regex.
+        coerce: Whether or not to coerce the column to the given type.
+    """
 
     typ: Any = None
 
@@ -21,7 +39,7 @@ class Field:
     str_startswith: str | None = None
     notnull: bool | None = None
     null: bool | None = None
-    unique: bool | None= None
+    unique: bool | None = None
 
     # Column name checks
     alias: str | None = None
