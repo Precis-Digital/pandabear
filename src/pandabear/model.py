@@ -236,19 +236,6 @@ class DataFrameModel(BaseModel):
                     f"Regex is used for `{name}` in schema `{cls.__name__}`, but no alias is defined."
                 )
 
-            # Check that number checks are not used on non-numeric columns
-            if any(
-                [
-                    field.ge is not None,
-                    field.gt is not None,
-                    field.le is not None,
-                    field.lt is not None,
-                ]
-            ) and typ not in [int, float]:
-                raise SchemaDefinitionError(
-                    f"Numerical check is used for `{name}` in schema `{cls.__name__}`, but the field is not numeric."
-                )
-
             # Check that string checks arenot used on non-string columns
             if any(
                 [
