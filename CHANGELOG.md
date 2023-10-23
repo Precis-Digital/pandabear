@@ -1,3 +1,10 @@
+## v0.7.1 (2023-10-23)
+
+### Fix
+
+- add df=df.copy() in validate method, to fix override bug
+- Refactor check_schemas decorator to use more specific type hints
+
 ## v0.7.0 (2023-10-23)
 
 ### Feat
