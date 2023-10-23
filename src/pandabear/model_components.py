@@ -4,24 +4,27 @@ from typing import Any, NamedTuple, Type
 
 @dataclasses.dataclass
 class Field:
+    ''' TODO add docstring to descripe what ge, gt, lt, and le stand for..
+    '''
+
     typ: Any = None
 
     # Pandas Series checks
-    ge: int | float = None
-    gt: int | float = None
-    lt: int | float = None
-    le: int | float = None
-    isin: list = None
-    notin: list = None
-    str_contains: str = None
-    str_endswith: str = None
-    str_startswith: str = None
-    notnull: bool = None
-    null: bool = None
-    unique: bool = None
+    ge: int | float | None = None
+    gt: int | float | None = None
+    lt: int | float | None = None
+    le: int | float | None = None
+    isin: list | None = None
+    notin: list | None = None
+    str_contains: str | None = None
+    str_endswith: str | None = None
+    str_startswith: str | None = None
+    notnull: bool | None = None
+    null: bool | None = None
+    unique: bool | None= None
 
     # Column name checks
-    alias: str = None
+    alias: str | None = None
     regex: bool = False
     coerce: bool = False
 
