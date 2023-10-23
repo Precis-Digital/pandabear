@@ -1,12 +1,15 @@
 import inspect
 from functools import wraps
 from types import NoneType, UnionType
-from typing import Any, Callable, get_args
+from typing import Any, Callable, ParamSpec, TypeVar, get_args
 
 import pandas as pd
 
 from pandabear.exceptions import TypeHintError
 from pandabear.model import BaseModel
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def _validate_variable_against_type_hint(var: Any, type_hint: Any, name: str) -> Any:
@@ -58,7 +61,7 @@ def _validate_variable_against_type_hint(var: Any, type_hint: Any, name: str) ->
     return transformed_var
 
 
-def check_schemas(func: Callable[..., Any]) -> Callable[..., Any]:
+def check_schemas(func: Callable[P, R]) -> Callable[P, R]:
     """Main decorator for validating schemas of input and return dataframes.
 
     This decorator is used to validate the dataframe schema of input arguments
@@ -67,10 +70,10 @@ def check_schemas(func: Callable[..., Any]) -> Callable[..., Any]:
     subclasses.
 
     Args:
-        func (Callable[..., Any]): The function to decorate.
+        func (Callable[P, R]): The function to decorate.
 
     Returns:
-        Callable[..., Any]: The decorated function.
+        Callable[P, R]: The decorated function.
 
     Raises:
         TypeError: If the input arguments or return values do not match their
@@ -92,7 +95,7 @@ def check_schemas(func: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs) -> Any:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         # Validate input argument(s)
         sig = inspect.signature(func)
         bound_args = sig.bind(*args, **kwargs)
