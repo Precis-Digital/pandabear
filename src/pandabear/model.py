@@ -418,6 +418,8 @@ class DataFrameModel(BaseModel):
                 This could e.g. happen when a column is of the wrong dtype or
                 when a custom check fails.
         """
+        df = df.copy()
+
         schema_map = cls._get_schema_map()
         Config = cls._get_config()
 
