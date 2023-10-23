@@ -5,6 +5,7 @@ from typing import Any, Union
 import numpy as np
 import pandas as pd
 
+from pandabear import type_checking
 from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
 from pandabear.exceptions import (
     CoersionError,
@@ -57,16 +58,16 @@ class BaseModel:
         Returns:
             pd.Series: The validated series.
         """
-        dtype = TYPE_DTYPE_MAP.get(typ, typ)
+        #  dtype = TYPE_DTYPE_MAP.get(typ, typ)
 
-        if se.dtype != dtype:
+        if not type_checking.is_of_type(se, typ):
             if coerce:
                 try:
                     se = se.astype(typ)
                 except ValueError:
-                    raise CoersionError(f"Could not coerce `{se.name}` with dtype {se.dtype} to {dtype}")
+                    raise CoersionError(f"Could not coerce `{se.name}` with dtype {se.dtype} to {typ}")
             else:
-                raise SchemaValidationError(f"Expected `{se.name}` with dtype {dtype} but found {se.dtype}")
+                raise SchemaValidationError(f"Expected `{se.name}` with dtype {typ} but found {se.dtype}")
 
         for check_name, check_func in CHECK_NAME_FUNCTION_MAP.items():
             check_value = getattr(field, check_name)
