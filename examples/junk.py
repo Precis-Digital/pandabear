@@ -1,10 +1,21 @@
-import pytest
-from typing import Optional 
+from typing import Optional
+
 import pandas as pd
+import pytest
 from beartype import beartype
 
-from pandabear import DataFrame, Series, DataFrameModel, Field, Index, check_schemas, check, dataframe_check, SeriesModel
-from pandabear.exceptions import SchemaValidationError, MissingIndexError
+from pandabear import (
+    DataFrame,
+    DataFrameModel,
+    Field,
+    Index,
+    Series,
+    SeriesModel,
+    check,
+    check_schemas,
+    dataframe_check,
+)
+from pandabear.exceptions import MissingIndexError, SchemaValidationError
 
 
 class MySchemaMissingColumnC(DataFrameModel):
@@ -14,6 +25,7 @@ class MySchemaMissingColumnC(DataFrameModel):
 
     class Config:
         filter = True
+
 
 df = pd.DataFrame(
     dict(
@@ -25,12 +37,14 @@ df = pd.DataFrame(
     )
 )
 
+
 @check_schemas
 def my_function(df: DataFrame[MySchemaMissingColumnC], *args):
     assert "column_c" not in df.columns
-    assert args == ('lol', )
+    assert args == ("lol",)
 
-my_function(df, 'lol')
+
+my_function(df, "lol")
 
 
 ######################################
@@ -44,6 +58,7 @@ class MySchema(DataFrameModel):
     class Config:
         coerce = True
 
+
 df = pd.DataFrame(
     data=dict(column_a=[1, 2, 3]),
     index=pd.MultiIndex.from_arrays([["foo", "bar", "foo"], [0, 1, 2]], names=["index0", "index1"]),
@@ -51,8 +66,8 @@ df = pd.DataFrame(
 
 df_out = MySchema.validate(df)
 
-assert df_out.index.get_level_values('index0').dtype == bool
-assert df_out.index.get_level_values('index1').dtype == bool
+assert df_out.index.get_level_values("index0").dtype == bool
+assert df_out.index.get_level_values("index1").dtype == bool
 
 # Define a custom dataframe schema
 class PlatformPerformanceData(DataFrameModel):
@@ -61,10 +76,11 @@ class PlatformPerformanceData(DataFrameModel):
     spend: float = Field(alias="spend___.+", regex=True, ge=0)
     clicks: int = Field(alias="clicks___.+", regex=True, ge=0)
     # impressions: int = Field(alias="impressions___.+", regex=True, ge=0)
-    
+
     class Config:
         filter = True
         coerce = True
+
 
 df = pd.DataFrame(
     dict(
@@ -81,12 +97,13 @@ df = pd.DataFrame(
 
 df = df.set_index("days_since")
 
+
 @check_schemas
 def my_func(df: DataFrame[PlatformPerformanceData]) -> DataFrame[PlatformPerformanceData]:
     return df
 
-my_func(df)
 
+my_func(df)
 
 
 # # class MySchema(DataFrameModel):
@@ -111,10 +128,7 @@ my_func(df)
 
 df = pd.DataFrame(
     data={"column1": [1, 2, 3]},
-    index=pd.MultiIndex.from_arrays(
-        [["foo", "bar", "foo"], [0, 1,2 ]],
-        names=["index0", "index1"]
-    )
+    index=pd.MultiIndex.from_arrays([["foo", "bar", "foo"], [0, 1, 2]], names=["index0", "index1"]),
 )
 
 # df = pd.DataFrame({
@@ -131,7 +145,7 @@ df = pd.DataFrame(
 #     @check('my_prefix.+', regex=True)
 #     def custom_check(column: pd.Series) -> bool:
 #         return column.sum() > 0
-    
+
 #     class Config:
 #         strict = True
 
@@ -142,4 +156,3 @@ df = pd.DataFrame(
 
 
 # my_function(df)
-
