@@ -18,6 +18,7 @@ class Field:
     str_startswith: str = None
     notnull: bool = None
     null: bool = None
+    unique: bool = None
 
     # Column name checks
     alias: str = None

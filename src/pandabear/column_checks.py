@@ -43,6 +43,10 @@ def series_notnull(series: pd.Series, value: bool = True) -> pd.Series:
     return series.notnull()
 
 
+def series_unique(series: pd.Series, value: bool = True) -> pd.Series:
+    return ~series.duplicated(keep="first")
+
+
 CHECK_NAME_FUNCTION_MAP = {
     "ge": series_greater_equal,
     "gt": series_greater,
@@ -54,4 +58,5 @@ CHECK_NAME_FUNCTION_MAP = {
     "str_startswith": series_str_startswith,
     "str_endswith": series_str_endswith,
     "notnull": series_notnull,
+    "unique": series_unique,
 }
