@@ -10,6 +10,7 @@ class Field:
     typ: Any = None
 
     # Pandas Series checks
+<<<<<<< HEAD
     ge: int | float | None = None
     gt: int | float | None = None
     lt: int | float | None = None
@@ -21,6 +22,20 @@ class Field:
     str_startswith: str | None = None
     notnull: bool | None = None
     null: bool | None = None
+=======
+    ge: int | float = None
+    gt: int | float = None
+    lt: int | float = None
+    le: int | float = None
+    isin: list = None
+    notin: list = None
+    str_contains: str = None
+    str_endswith: str = None
+    str_startswith: str = None
+    notnull: bool = None
+    null: bool = None
+    unique: bool = None
+>>>>>>> main
 
     # Column name checks
     alias: str | None = None
