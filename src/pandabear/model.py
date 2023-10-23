@@ -14,7 +14,14 @@ from pandabear.exceptions import (
     SchemaDefinitionError,
     SchemaValidationError,
 )
-from pandabear.model_components import BaseConfig, Field, FieldInfo, Index
+from pandabear.model_components import (
+    BaseConfig,
+    Field,
+    FieldInfo,
+    Index,
+    get_index_type,
+    is_type_index,
+)
 
 TYPE_DTYPE_MAP = {
     str: np.dtype("O"),
@@ -105,11 +112,12 @@ class DataFrameModel(BaseModel):
         schema_map = {}
         for name, typ in cls.__annotations__.items():
             typ, optional = cls._check_optional_type(typ)
-            is_index = False
-            if hasattr(typ, "__args__") and typ.__args__[0] is Index:
+            is_index = is_type_index(typ)
+            if is_index:
                 # `typ` is like `Union[Index, int]` (meaning the user provided `Index[int]`)
-                typ = typ.__args__[1]
-                is_index = True
+                # or a bare pandas.index type.
+                typ = get_index_type(typ)
+
             schema_map[name] = (typ, optional, is_index, getattr(cls, name) if hasattr(cls, name) else Field())
         return schema_map
 
