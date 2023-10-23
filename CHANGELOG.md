@@ -1,3 +1,9 @@
+## v0.7.0 (2023-10-23)
+
+### Feat
+
+- support defining `unique` in Field
+
 ## v0.6.1 (2023-10-20)
 
 ### Refactor
