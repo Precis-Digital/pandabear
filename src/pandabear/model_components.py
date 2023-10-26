@@ -17,7 +17,7 @@ class Field:
         str_contains: Checks if the column contains the given string.
         str_startswith: Checks if the column starts with the given string.
         str_endswith: Checks if the column ends with the given string.
-        notnull: Checks if the column is not null.
+        nullable: If false checks if series contains null values.
         null: Checks if the column is null.
         unique: Checks if the column is unique.
         alias: Alias for the column name. Can be a regex.
@@ -37,7 +37,7 @@ class Field:
     str_contains: str | None = None
     str_endswith: str | None = None
     str_startswith: str | None = None
-    notnull: bool | None = None
+    nullable: bool | None = None
     null: bool | None = None
     unique: bool | None = None
 

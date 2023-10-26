@@ -39,7 +39,9 @@ def series_str_startswith(series: pd.Series, value: str) -> pd.Series:
     return series.str.startswith(value)
 
 
-def series_notnull(series: pd.Series, value: bool = True) -> pd.Series:
+def series_nullable(series: pd.Series, value: bool) -> pd.Series:
+    if value:
+        return pd.Series([True] * len(series), index=series.index)
     return series.notnull()
 
 
@@ -57,6 +59,6 @@ CHECK_NAME_FUNCTION_MAP = {
     "str_contains": series_str_contains,
     "str_startswith": series_str_startswith,
     "str_endswith": series_str_endswith,
-    "notnull": series_notnull,
+    "nullable": series_nullable,
     "unique": series_unique,
 }
