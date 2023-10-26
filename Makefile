@@ -19,18 +19,7 @@ commit-all: ## Stages any changed files via `git add .`, then runs pre-commit ch
 	git add .
 	cz commit
 
-enable-update-cloudbuild:  ## Setups up or updates the Cloud Build triggers used in CI/CD for automated building and publishing of the package.
-	bash cloudbuild/create_update_run_tests_build_trigger.sh
-	@echo ""
-	@echo "======================================================="
-	@echo ""
-	bash cloudbuild/create_update_build_publish_trigger.sh
-
-build-publish-package:  ## Manually runs the build/publish script at scripts/build_publish_package.sh
-	bash scripts/build_publish_package.sh
-
-update-from-template: ## Update components (files and/or folders) from the source template. NOTE: must run this script directly with python, ie `python scripts/update_template_components.py --help`
-	python scripts/update_template_components.py --help
+# build-publish-package:  ## Manually runs the build/publish script at scripts/build_publish_package.sh
 
 .PHONY: help
 
