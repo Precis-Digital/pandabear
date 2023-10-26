@@ -3,9 +3,6 @@ build==0.10.0
 wheel==0.40.0
 twine==4.0.2
 
-# GCP Artifact Registry authentication
-keyrings.google-artifactregistry-auth==1.1.1
-
 # Linting/formatting
 pre-commit==2.20.0
 black==22.8.0
