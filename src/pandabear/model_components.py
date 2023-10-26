@@ -20,6 +20,7 @@ class Field:
         notnull: Checks if the column is not null.
         null: Checks if the column is null.
         unique: Checks if the column is unique.
+        check_index_name: Whether or not to check the index name (or allow it to be anything)
         alias: Alias for the column name. Can be a regex.
         regex: Whether or not the alias is a regex.
         coerce: Whether or not to coerce the column to the given type.
@@ -40,6 +41,7 @@ class Field:
     notnull: bool | None = None
     null: bool | None = None
     unique: bool | None = None
+    check_index_name: bool = True
 
     # Column name checks
     alias: str | None = None

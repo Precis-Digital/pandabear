@@ -5,6 +5,31 @@ import pandas as pd
 from pandabear import DataFrame, DataFrameModel, Field, Index, check_schemas
 
 
+class Coefficients(DataFrameModel):
+    """Pandabear schema for credit distribution data.
+
+    Input data may look like:
+
+    channel,credit
+    paid_search_brand,0.2
+    youtube,0.3
+    """
+
+    index: Index[str] = Field(check_index_name=True)
+    credit: float = Field(ge=0, coerce=True)
+
+
+df = pd.DataFrame(
+    {
+        "credit": [0.2, 0.3],
+    }
+)
+df.index = ["paid_search_brand", "youtube"]
+df.index.name = "channel"
+
+Coefficients.validate(df)
+
+
 def example_1():
     """This example showcases the use of the `Field` class to define a schema for a dataframe."""
 

@@ -180,3 +180,38 @@ def test_multiindex_schema__failing():
     df2 = df.reset_index()
     with pytest.raises(MissingIndexError):
         MultiIndexSchema._validate_multiindex(df2, MultiIndexSchema._get_schema_map(), MultiIndexSchema._get_config())
+
+
+def test_multiindex_check_index_name__success():
+    class Coefficients(DataFrameModel):
+        index: Index[str] = Field(check_index_name=False)
+        credit: float = Field(ge=0, coerce=True)
+
+    df = pd.DataFrame(
+        {
+            "credit": [0.2, 0.3],
+        }
+    )
+    df.index = ["paid_search_brand", "youtube"]
+    df.index.name = "channel"
+
+    # 1. passes
+    Coefficients.validate(df)
+
+
+def test_multiindex_check_index_name__failing():
+    class Coefficients(DataFrameModel):
+        index: Index[str] = Field(check_index_name=True)
+        credit: float = Field(ge=0, coerce=True)
+
+    df = pd.DataFrame(
+        {
+            "credit": [0.2, 0.3],
+        }
+    )
+    df.index = ["paid_search_brand", "youtube"]
+    df.index.name = "channel"
+
+    # 1. fails
+    with pytest.raises(MissingIndexError):
+        Coefficients.validate(df)
