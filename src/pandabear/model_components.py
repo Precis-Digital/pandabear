@@ -3,6 +3,8 @@ from typing import Any, NamedTuple, Type
 
 import pandas as pd
 
+from pandabear.exceptions import SchemaDefinitionError
+
 PANDAS_INDEX_TYPES = [
     # pd.DatetimeIndex
 ]
@@ -23,9 +25,10 @@ class Field:
         str_contains: Checks if the column contains the given string.
         str_startswith: Checks if the column starts with the given string.
         str_endswith: Checks if the column ends with the given string.
-        notnull: Checks if the column is not null.
+        nullable: If false checks if series contains null values.
         null: Checks if the column is null.
         unique: Checks if the column is unique.
+        check_index_name: Whether or not to check the index name (or allow it to be anything)
         alias: Alias for the column name. Can be a regex.
         regex: Whether or not the alias is a regex.
         coerce: Whether or not to coerce the column to the given type.
@@ -43,9 +46,10 @@ class Field:
     str_contains: str | None = None
     str_endswith: str | None = None
     str_startswith: str | None = None
-    notnull: bool | None = None
+    nullable: bool | None = None
     null: bool | None = None
     unique: bool | None = None
+    check_index_name: bool = True
 
     # Column name checks
     alias: str | None = None
@@ -114,11 +118,16 @@ def is_type_index_wrapped(typ):
     return hasattr(typ, "__args__") and typ.__args__[0] is Index
 
 
-def is_type_index(typ):
+def is_type_index(typ, name, cls):
+    if typ is Index:
+        raise SchemaDefinitionError(
+            f"Index column `{name}` in schema `{cls.__name__}` must be defined as `Index[<type>]`"
+        )
     return is_type_index_wrapped(typ) or typ in PANDAS_INDEX_TYPES
 
 
 def get_index_type(typ):
+
     if is_type_index_wrapped(typ):
         return typ.__args__[1]
     return typ

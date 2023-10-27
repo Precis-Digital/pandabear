@@ -112,7 +112,7 @@ class DataFrameModel(BaseModel):
         schema_map = {}
         for name, typ in cls.__annotations__.items():
             typ, optional = cls._check_optional_type(typ)
-            is_index = is_type_index(typ)
+            is_index = is_type_index(typ, name, cls)
             if is_index:
                 # `typ` is like `Union[Index, int]` (meaning the user provided `Index[int]`)
                 # or a bare pandas.index type.
@@ -237,7 +237,16 @@ class DataFrameModel(BaseModel):
         schema, like e.g. missing aliases when regex=True, number checks on
         non-numeric columns, etc.
         """
+        using_check_index_name = []
         for name, (typ, optional, is_index, field) in schema_map.items():
+            # Check that there are not multiple index columns if `check_index_name` is False
+            if is_index:
+                using_check_index_name.append(field.check_index_name)
+                if len(using_check_index_name) > 1 and not all(using_check_index_name):
+                    raise SchemaDefinitionError(
+                        f"Schema `{cls.__name__}` defines multiple indices where one or more have `check_index_name=False`. MultiIndex schemas, require name checks."
+                    )
+
             # Check that regex is not used when alias is not defined
             if field.regex and field.alias is None:
                 raise SchemaDefinitionError(
@@ -269,7 +278,9 @@ class DataFrameModel(BaseModel):
         pass `df` through with coerced types, filtered index levels, ordered
         index levels or as-is.
         """
-        matching_index_names_in_df = cls._select_matching_names(list(df.index.names), schema_map, match_index=True)
+        matching_index_names_in_df, schema_map = cls._select_matching_names(
+            list(df.index.names), schema_map, match_index=True
+        )
 
         if Config.filter:
             # Make sure that only the matching index levels are kept
@@ -316,12 +327,12 @@ class DataFrameModel(BaseModel):
         pass `df` through with coerced types, filtered columns, ordered columns
         or as-is.
         """
-        matching_columns_in_df = cls._select_matching_names(list(df.columns), schema_map)
+        matching_columns_in_df, _ = cls._select_matching_names(list(df.columns), schema_map)
 
         # Drop columns in `df` that do not match the schema
         if Config.filter:
             ordered_columns_in_df = [col for col in df.columns if col in matching_columns_in_df]
-            df = df.copy()[ordered_columns_in_df]
+            df = df[ordered_columns_in_df].copy()
 
         # Complain about columns in `df` that are not defined in the schema
         elif Config.strict:
@@ -343,7 +354,7 @@ class DataFrameModel(BaseModel):
     @classmethod
     def _select_matching_names(
         cls, names: list[str], schema_map: dict[str, FieldInfo], match_index: bool = False
-    ) -> list[str]:
+    ) -> tuple[list[str], dict[str, FieldInfo]]:
         """Select columns or index levels in `names` that match the schema.
 
         If a column or index level is defined in the schema it *must* be
@@ -389,7 +400,7 @@ class DataFrameModel(BaseModel):
                     )
                 matching_names.append(field.alias)
             else:
-                if series_name not in names and not optional:
+                if series_name not in names and not optional and field.check_index_name:  # field
                     raise MissingNameError(
                         f"No {series_type}s match {series_type} name `{series_name}` in schema `{cls.__name__}`."
                     )
@@ -397,8 +408,13 @@ class DataFrameModel(BaseModel):
                     raise SchemaDefinitionError(
                         f"{series_type.capitalize()} `{series_name}` in schema `{cls.__name__}` is used by another field."
                     )
-                matching_names.append(series_name)
-        return matching_names
+                elif field.check_index_name is False and match_index:
+                    assert len(names) == 1, "This should not happen. Looks like columns were not properly filtered."
+                    schema_map[names[0]] = schema_map.pop(series_name)
+                    return names, schema_map
+                else:
+                    matching_names.append(series_name)
+        return matching_names, schema_map
 
     @classmethod
     def validate(cls, df: pd.DataFrame) -> pd.DataFrame:

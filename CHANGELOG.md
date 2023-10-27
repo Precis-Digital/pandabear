@@ -1,3 +1,9 @@
+## v0.8.0 (2023-10-26)
+
+### Feat
+
+- Support check_index_name param passed to index field
+
 ## v0.7.1 (2023-10-23)
 
 ### Fix

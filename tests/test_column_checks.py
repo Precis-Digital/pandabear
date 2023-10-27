@@ -9,7 +9,7 @@ from pandabear.column_checks import (
     series_less,
     series_less_equal,
     series_notin,
-    series_notnull,
+    series_nullable,
     series_str_contains,
     series_str_endswith,
     series_str_startswith,
@@ -88,11 +88,12 @@ def test_series_str_startswith():
     assert series_str_startswith(pd.Series(["ca", "cb", "cc"]), "c").all()
 
 
-def test_series_notnull():
-    assert series_notnull(pd.Series([1, 2, 3])).all()
-    assert not series_notnull(pd.Series([1, 2, 3, None])).all()
-    assert not series_notnull(pd.Series([1.0, 2.0, np.nan])).all()
-    assert not series_notnull(pd.Series([pd.NaT, pd.Timestamp("1939-05-27")])).all()
+def test_series_nullable():
+    assert series_nullable(pd.Series([1, 2, 3]), True).all()
+    assert series_nullable(pd.Series([1, 2, 3]), False).all()
+    assert not series_nullable(pd.Series([1, 2, 3, None]), False).all()
+    assert not series_nullable(pd.Series([1.0, 2.0, np.nan]), False).all()
+    assert not series_nullable(pd.Series([pd.NaT, pd.Timestamp("1939-05-27")]), False).all()
 
 
 def test_ColumnCheckError():
