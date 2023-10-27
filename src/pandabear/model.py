@@ -112,7 +112,7 @@ class DataFrameModel(BaseModel):
         schema_map = {}
         for name, typ in cls.__annotations__.items():
             typ, optional = cls._check_optional_type(typ)
-            is_index = is_type_index(typ, name, cls)
+            is_index = is_type_index(typ, name, cls.__name__)
             if is_index:
                 # `typ` is like `Union[Index, int]` (meaning the user provided `Index[int]`)
                 # or a bare pandas.index type.

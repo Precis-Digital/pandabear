@@ -118,10 +118,10 @@ def is_type_index_wrapped(typ):
     return hasattr(typ, "__args__") and typ.__args__[0] is Index
 
 
-def is_type_index(typ, name, cls):
+def is_type_index(typ, name, class_name):
     if typ is Index:
         raise SchemaDefinitionError(
-            f"Index column `{name}` in schema `{cls.__name__}` must be defined as `Index[<type>]`"
+            f"Index column `{name}` in schema `{class_name}` must be defined as `Index[<type>]`"
         )
     return is_type_index_wrapped(typ) or typ in PANDAS_INDEX_TYPES
 
