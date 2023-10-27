@@ -1,6 +1,14 @@
 import dataclasses
 from typing import Any, NamedTuple, Type
 
+import pandas as pd
+
+from pandabear.exceptions import SchemaDefinitionError
+
+PANDAS_INDEX_TYPES = [
+    # pd.DatetimeIndex
+]
+
 
 @dataclasses.dataclass
 class Field:
@@ -104,3 +112,22 @@ class FieldInfo(NamedTuple):
     optional: bool
     is_index: bool
     field: Field
+
+
+def is_type_index_wrapped(typ):
+    return hasattr(typ, "__args__") and typ.__args__[0] is Index
+
+
+def is_type_index(typ, name, class_name):
+    if typ is Index:
+        raise SchemaDefinitionError(
+            f"Index column `{name}` in schema `{class_name}` must be defined as `Index[<type>]`"
+        )
+    return is_type_index_wrapped(typ) or typ in PANDAS_INDEX_TYPES
+
+
+def get_index_type(typ):
+
+    if is_type_index_wrapped(typ):
+        return typ.__args__[1]
+    return typ
