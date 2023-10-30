@@ -1,9 +1,8 @@
-name: Bump version
+name: Version Bump and Publish to PyPI
 
 on:
   push:
     branches:
-      - master
       - main
 
 jobs:
@@ -35,3 +34,23 @@ jobs:
       - id: print-version
         name: Print Version
         run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
+
+
+  build:
+    needs: bump_version  # Only runs after bump_version job completes successfully
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: pip install setuptools wheel twine
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
