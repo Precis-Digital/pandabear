@@ -1,6 +1,6 @@
 import re
-from types import NoneType
-from typing import Any, Union
+from types import NoneType, UnionType
+from typing import Any, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -9,23 +9,21 @@ from pandabear.column_checks import CHECK_NAME_FUNCTION_MAP
 from pandabear.exceptions import (
     CoersionError,
     ColumnCheckError,
+    IndexCheckError,
     MissingColumnsError,
     MissingIndexError,
     SchemaDefinitionError,
     SchemaValidationError,
+    UnsupportedTypeError,
 )
 from pandabear.model_components import (
     BaseConfig,
     Field,
     FieldInfo,
-    Index,
     get_index_type,
     is_type_index,
 )
-
-TYPE_DTYPE_MAP = {
-    str: np.dtype("O"),
-}
+from pandabear.type_checking import is_of_type
 
 
 # @dataclasses.dataclass
@@ -51,37 +49,49 @@ class BaseModel:
         return BaseConfig._override(cls.Config)
 
     @classmethod
-    def _validate_series(cls, se: pd.Series, field: Field, typ: Any, coerce: bool) -> pd.Series:
+    def _validate_series_or_index(
+        cls, se_or_idx: pd.Series | Type[pd.Index], field: Field, typ: Any, coerce: bool
+    ) -> pd.Series:
         """Validate a series against a field and type.
 
         Args:
-            se (pd.Series): The series to validate.
-            field (Field): The field to validate against.
-            typ (Any): The type to validate against.
-            coerce (bool): Whether to coerce the series to the type of the
+            se_or_idx: The series or Index (or Index substype) to validate.
+            field: The field to validate against.
+            typ: The type to validate against.
+            coerce: Whether to coerce the series to the type of the
                 field.
 
         Returns:
-            pd.Series: The validated series.
+            se_or_idx: pd.Series | Type[pd.Index]: The validated series or Index.
         """
-        dtype = TYPE_DTYPE_MAP.get(typ, typ)
 
-        if se.dtype != dtype:
+        is_index = ~isinstance(se_or_idx, pd.Series)
+
+        if not is_of_type(se_or_idx, typ):
             if coerce:
                 try:
-                    se = se.astype(typ)
+                    se_or_idx = se_or_idx.astype(typ)
                 except ValueError:
-                    raise CoersionError(f"Could not coerce `{se.name}` with dtype {se.dtype} to {dtype}")
+                    raise CoersionError(f"Could not coerce `{se_or_idx.name}` with dtype {se_or_idx.dtype} to {typ}")
             else:
-                raise SchemaValidationError(f"Expected `{se.name}` with dtype {dtype} but found {se.dtype}")
+                raise SchemaValidationError(
+                    f"Expected {f'`{se_or_idx.name}`' if se_or_idx.name else 'index'} with dtype {typ} but found dtype `{se_or_idx.dtype}`"
+                )
 
         for check_name, check_func in CHECK_NAME_FUNCTION_MAP.items():
             check_value = getattr(field, check_name)
             if check_value is not None:
-                result = check_func(series=se, value=check_value)
+                result = check_func(series=se_or_idx if is_index else se_or_idx.to_series(), value=check_value)
                 if not result.all():
-                    raise ColumnCheckError(check_name=check_name, check_value=check_value, series=se, result=result)
-        return se
+                    if is_index:
+                        raise ColumnCheckError(
+                            check_name=check_name, check_value=check_value, series=se_or_idx, result=result
+                        )
+                    else:
+                        raise IndexCheckError(
+                            check_name=check_name, check_value=check_value, index=se_or_idx, result=result
+                        )
+        return se_or_idx
 
 
 class DataFrameModel(BaseModel):
@@ -111,6 +121,7 @@ class DataFrameModel(BaseModel):
         """
         schema_map = {}
         for name, typ in cls.__annotations__.items():
+            cls._check_type_is_valid(typ)
             typ, optional = cls._check_optional_type(typ)
             is_index = is_type_index(typ, name, cls.__name__)
             if is_index:
@@ -131,31 +142,40 @@ class DataFrameModel(BaseModel):
         return typ, optional
 
     @staticmethod
-    def override_level(
-        index: pd.MultiIndex | pd.Index, index_level: str, series: pd.Series
+    def _override_level(
+        df_index: Type[pd.Index], index_level: str, new_index_values: Type[pd.Index]
     ) -> pd.MultiIndex | pd.Index:
-        """Override a level in a MultiIndex or Index with a new series."""
-        if isinstance(index, pd.MultiIndex):
-            df_reset = index.to_frame(index=False)
-            if index_level not in df_reset.columns:
+        """Override a level in a MultiIndex or Index with a new index."""
+        if isinstance(df_index, pd.MultiIndex):
+            df_tmp = df_index.to_frame(index=False)
+            if index_level not in df_tmp.columns:
                 raise ValueError(f"Index level '{index_level}' not found in MultiIndex.")
-            df_reset[index_level] = series.values
-            new_index = pd.MultiIndex.from_frame(df_reset)
+            df_tmp[index_level] = new_index_values
+            return pd.MultiIndex.from_frame(df_tmp)
         else:
-            if index.name != index_level:
-                raise ValueError(f"Index name '{index.name}' does not match given index_level '{index_level}'.")
-            new_index = pd.Index(series.values, name=index_level)
-        return new_index
+            if df_index.name != index_level:
+                raise ValueError(f"Index name '{df_index.name}' does not match given index_level '{index_level}'.")
+            index_type_map = {
+                pd.Index: pd.Index,
+                pd.DatetimeIndex: pd.DatetimeIndex,
+                pd.PeriodIndex: pd.PeriodIndex,
+                pd.TimedeltaIndex: pd.TimedeltaIndex,
+                pd.CategoricalIndex: pd.CategoricalIndex,
+                pd.RangeIndex: pd.RangeIndex,
+                pd.IntervalIndex: pd.IntervalIndex,
+            }
+            index_type = index_type_map.get(type(df_index))
+            return index_type(new_index_values, name=index_level)
 
     @staticmethod
-    def _select_index_series(df: pd.DataFrame, level: str, optional: bool = True) -> list[pd.Series]:
+    def _select_index_series(df: pd.DataFrame, level: str, optional: bool = True) -> list[Type[pd.Index]]:
         """Select a series from a dataframe by column name.
 
         Return a list containing maximally 1 series. Reason for this is that
         series are validated in a loop, so returning a list is convenient.
         """
         try:
-            return [df.index.get_level_values(level).to_series()]
+            return [df.index.get_level_values(level)]
         except KeyError:
             # When this happens we can deduce that the corresponding column is
             # optional (otherwise an error would have been raised in
@@ -184,18 +204,30 @@ class DataFrameModel(BaseModel):
             return []
 
     @staticmethod
-    def _select_index_series_by_regex(df: pd.DataFrame, alias: str) -> list[pd.Series]:
+    def _select_index_series_by_regex(df: pd.DataFrame, alias: str) -> list[Type[pd.Index]]:
         """Select a series from a dataframe by regex."""
-        return [
-            df.index.get_level_values(level).to_series()
-            for level in df.index.names
-            if re.match(alias, level) is not None
-        ]
+        return [df.index.get_level_values(level) for level in df.index.names if re.match(alias, level) is not None]
 
     @staticmethod
     def _select_series_by_regex(df: pd.DataFrame, alias: str) -> list[pd.Series]:
         """Select a series from a dataframe by regex."""
         return [df[col] for col in df.filter(regex=alias, axis=1).columns]
+
+    @classmethod
+    def _check_type_is_valid(cls, typ: Any) -> bool:
+        """Recursively check that `typ` is a valid type annotation."""
+        if typ in [int, float, str, bytes, bool, type(None)]:
+            return True
+        if isinstance(typ, type):
+            return True
+        if hasattr(typ, "__origin__") and hasattr(typ, "__args__"):
+            origin = typ.__origin__
+            args = typ.__args__
+            if origin in {list, dict, Union}:
+                return all(cls._check_type_is_valid(arg) for arg in args)
+        if isinstance(typ, UnionType):
+            return all(cls._check_type_is_valid(arg) for arg in typ.__args__)
+        raise UnsupportedTypeError(f"Type `{typ}` is not supported")
 
     @classmethod
     def _validate_custom_checks(cls, df: pd.DataFrame):
@@ -266,9 +298,7 @@ class DataFrameModel(BaseModel):
                 )
 
     @classmethod
-    def _validate_multiindex(
-        cls, df: pd.DataFrame, schema_map: dict[str, FieldInfo], Config: BaseConfig
-    ) -> pd.DataFrame:
+    def _validate_multiindex(cls, df: pd.DataFrame) -> pd.DataFrame:
         """Validate index levels in `df` against the schema.
 
         Raise approproate errors if index levels are missing or if there is an
@@ -278,11 +308,9 @@ class DataFrameModel(BaseModel):
         pass `df` through with coerced types, filtered index levels, ordered
         index levels or as-is.
         """
-        matching_index_names_in_df, schema_map = cls._select_matching_names(
-            list(df.index.names), schema_map, match_index=True
-        )
+        matching_index_names_in_df = cls._select_matching_names(list(df.index.names), match_index=True)
 
-        if Config.filter:
+        if cls.Config.filter:
             # Make sure that only the matching index levels are kept
             if df.index.names != [None] and len(matching_index_names_in_df) < len(df.index.names):
                 if len(matching_index_names_in_df) == 0:
@@ -290,25 +318,25 @@ class DataFrameModel(BaseModel):
                 else:
                     df = df.droplevel([ind for ind in df.index.names if ind not in matching_index_names_in_df])
 
-        if Config.multiindex_strict:
+        if cls.Config.multiindex_strict:
             if unexpected_indices := set(df.index.names) - set(matching_index_names_in_df) - set([None]):
                 raise SchemaValidationError(
                     f"MultiIndex names {unexpected_indices} are present in `df` but not defined in schema. Use `multiindex_strict=False` to supress this error."
                 )
 
-        if Config.multiindex_ordered:
+        if cls.Config.multiindex_ordered:
             if df.index.names != [None] and matching_index_names_in_df != list(df.index.names):
                 raise SchemaValidationError(
                     "MultiIndex names in `df` are not ordered as in schema. Use `multiindex_ordered=False` to supress this error."
                 )
 
-        if Config.multiindex_sorted:
+        if cls.Config.multiindex_sorted:
             if not (df.index.is_monotonic_increasing or df.index.is_monotonic_decreasing):
                 raise SchemaValidationError(
                     "MultiIndex is not sorted. Use `multiindex_sorted=False` to supress this error."
                 )
 
-        if Config.multiindex_unique:
+        if cls.Config.multiindex_unique:
             if not df.index.is_unique:
                 raise SchemaValidationError(
                     "MultiIndex is not unique. Use `multiindex_unique=False` to supress this error."
@@ -317,7 +345,7 @@ class DataFrameModel(BaseModel):
         return df
 
     @classmethod
-    def _validate_columns(cls, df: pd.DataFrame, schema_map: dict[str, FieldInfo], Config: BaseConfig) -> pd.DataFrame:
+    def _validate_columns(cls, df: pd.DataFrame) -> pd.DataFrame:
         """Validate column names in `df` against the schema.
 
         Raise approproate errors if columns are missing or if there is an
@@ -327,15 +355,15 @@ class DataFrameModel(BaseModel):
         pass `df` through with coerced types, filtered columns, ordered columns
         or as-is.
         """
-        matching_columns_in_df, _ = cls._select_matching_names(list(df.columns), schema_map)
+        matching_columns_in_df = cls._select_matching_names(list(df.columns))
 
         # Drop columns in `df` that do not match the schema
-        if Config.filter:
+        if cls.Config.filter:
             ordered_columns_in_df = [col for col in df.columns if col in matching_columns_in_df]
             df = df[ordered_columns_in_df].copy()
 
         # Complain about columns in `df` that are not defined in the schema
-        elif Config.strict:
+        elif cls.Config.strict:
             if unexpected_columns := set(df.columns) - set(matching_columns_in_df):
                 raise SchemaValidationError(
                     f"Columns {unexpected_columns} are present in `df` but not in schema. Use `strict=False` or `filter=True` to supress this error."
@@ -343,7 +371,7 @@ class DataFrameModel(BaseModel):
 
         # Complain if the order of columns in `df` does not match the order in
         # which they are defined in the schema
-        if Config.ordered:
+        if cls.Config.ordered:
             if matching_columns_in_df != list(df.columns):
                 raise SchemaValidationError(
                     "Columns in `df` are not ordered as in schema. Use `ordered=False` to supress this error."
@@ -353,7 +381,7 @@ class DataFrameModel(BaseModel):
 
     @classmethod
     def _select_matching_names(
-        cls, names: list[str], schema_map: dict[str, FieldInfo], match_index: bool = False
+        cls, names: list[str], match_index: bool = False
     ) -> tuple[list[str], dict[str, FieldInfo]]:
         """Select columns or index levels in `names` that match the schema.
 
@@ -361,6 +389,11 @@ class DataFrameModel(BaseModel):
         present in `df`. This function serves the important purpose of raising
         errors when columns in `df` seem to be *missing* when compared to the
         schema.
+
+        NOTE: This method may modify the schema map. This happens when an Index
+        field is defined with `check_index_name = False`. In that case this
+        method will replace the index name in the schema map with the name of
+        the index in `df`.
 
         Raises:
             SchemaDefinitionError: If a column or alias is not found in `df`,
@@ -373,7 +406,7 @@ class DataFrameModel(BaseModel):
         MissingNameError = MissingIndexError if match_index else MissingColumnsError
         series_type = "index level" if match_index else "column"
         matching_names = []
-        for series_name, (_, optional, is_index, field) in schema_map.items():
+        for series_name, (_, optional, is_index, field) in cls.schema_map.items():
             if is_index and not match_index:
                 continue
             elif not is_index and match_index:
@@ -410,11 +443,11 @@ class DataFrameModel(BaseModel):
                     )
                 elif field.check_index_name is False and match_index:
                     assert len(names) == 1, "This should not happen. Looks like columns were not properly filtered."
-                    schema_map[names[0]] = schema_map.pop(series_name)
-                    return names, schema_map
+                    cls.schema_map[names[0]] = cls.schema_map.pop(series_name)
+                    return names
                 else:
                     matching_names.append(series_name)
-        return matching_names, schema_map
+        return matching_names
 
     @classmethod
     def validate(cls, df: pd.DataFrame) -> pd.DataFrame:
@@ -444,50 +477,52 @@ class DataFrameModel(BaseModel):
         """
         df = df.copy()
 
-        schema_map = cls._get_schema_map()
-        Config = cls._get_config()
+        cls.schema_map = cls._get_schema_map()
+        cls.Config = cls._get_config()
 
         # Validate schema definition. Catch errors like, e.g., missing aliases
         # when regex=True, number checks on non-numeric columns, etc.
-        cls._validate_schema(schema_map)
+        cls._validate_schema(cls.schema_map)
 
         # Check that indices and columns in `df` match schema. The only errors
         # that should be thrown here relate to schema errors or missing columns
         # in `df`. Furthermore, this method may filter, coerce or order `df`
         # depending on user-provided specifications in `Config`.
-        df = cls._validate_multiindex(df, schema_map, Config)
-        df = cls._validate_columns(df, schema_map, Config)
+        df = cls._validate_multiindex(df)
+        df = cls._validate_columns(df)
 
         # Validate `df` against schema. The only errors that should be raised
         # in this step are from dtype checks and `Field` checks.
-        for name, (typ, optional, is_index, field) in schema_map.items():
+        for name, (typ, optional, is_index, field) in cls.schema_map.items():
             # Select the column (or columns) in `df` that match the field.
             # ... when index column
             if is_index:
                 if field.regex and field.alias is not None:
-                    matched_series = cls._select_index_series_by_regex(df, field.alias)
+                    matched_series_or_index = cls._select_index_series_by_regex(df, field.alias)
                 else:
-                    matched_series = cls._select_index_series(df, field.alias or name, optional)
+                    matched_series_or_index = cls._select_index_series(df, field.alias or name, optional)
 
             # ... when column has aliased name
             elif field.alias is not None:
                 if field.regex:
-                    matched_series = cls._select_series_by_regex(df, field.alias)
+                    matched_series_or_index = cls._select_series_by_regex(df, field.alias)
                 else:
-                    matched_series = cls._select_series(df, field.alias, optional)
+                    matched_series_or_index = cls._select_series(df, field.alias, optional)
 
             # ... when column name is attribute name (not alias)
             else:
-                matched_series = cls._select_series(df, name, optional)
+                matched_series_or_index = cls._select_series(df, name, optional)
 
             # Validate the selected column(s) against the field and type.
-            for series in matched_series:
-                series = cls._validate_series(series, field, typ, Config.coerce or field.coerce)
-                if Config.coerce or field.coerce:
+            for series_or_index in matched_series_or_index:
+                series_or_index = cls._validate_series_or_index(
+                    series_or_index, field, typ, cls.Config.coerce or field.coerce
+                )
+                if cls.Config.coerce or field.coerce:
                     if is_index:
-                        df.index = cls.override_level(df.index, series.name, series)
+                        df.index = cls._override_level(df.index, series_or_index.name, series_or_index.values)
                     else:
-                        df[series.name] = series
+                        df[series_or_index.name] = series_or_index
 
         cls._validate_custom_checks(df)
 
@@ -517,5 +552,5 @@ class SeriesModel(BaseModel):
         _, value_type = cls._get_value_name_and_type()
         field = cls._get_field()
         Config = cls._get_config()
-        series = cls._validate_series(series, field, value_type, Config.coerce)
+        series = cls._validate_series_or_index(series, field, value_type, Config.coerce)
         return series

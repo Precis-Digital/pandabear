@@ -1,8 +1,9 @@
+import numpy as np
 import pandas as pd
 import pytest
 
 from pandabear.exceptions import CoersionError, SchemaValidationError
-from pandabear.model import TYPE_DTYPE_MAP, DataFrameModel
+from pandabear.model import DataFrameModel
 from pandabear.model_components import Field, Index
 
 
@@ -19,14 +20,16 @@ def test_coerce_base_case():
 
     df = pd.DataFrame(dict(a=["1"], b=[1], c=[2]))
     print(df.dtypes)
-    expected_message = "Expected `a` with dtype <class 'int'> but found object"
+    expected_message = "Expected `a` with dtype <class 'int'> but found dtype `object`"
     with pytest.raises(SchemaValidationError, match=expected_message):
         dfval = MySchema.validate(df)
 
     # 2. will coerce dtypes
     MySchema.Config = CoerceConfig
     dfval = MySchema.validate(df)
-    assert dfval.dtypes.tolist() == [int, float, TYPE_DTYPE_MAP[str]]
+    assert dfval.dtypes.a == int
+    assert dfval.dtypes.b == float
+    assert dfval.dtypes.c == np.dtype("O")
     assert dfval.a.tolist() == [1]
     assert dfval.b.tolist() == [1.0]
     assert dfval.c.tolist() == ["2"]

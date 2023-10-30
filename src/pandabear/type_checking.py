@@ -12,6 +12,10 @@ def check_isinstance(series_or_index, typ):
     return isinstance(series_or_index, typ)
 
 
+def check_type_is(series_or_index, typ):
+    return type(series_or_index) is typ
+
+
 def check_str_object(series_or_index, typ):
     return check_dtype_equality(series_or_index, np.dtype("O"))
 
@@ -37,8 +41,10 @@ TYPE_CHECK_MAP = {
     str: check_str_object,
     np.datetime64: check_datetime64,
     datetime.datetime: check_datetime64,
+    pd.CategoricalIndex: check_isinstance,
     pd.CategoricalDtype: check_bare_categorical_dtype,
-    pd.DatetimeIndex: check_isinstance,
+    pd.DatetimeIndex: check_type_is,
+    pd.Index: check_type_is,
 }
 
 
