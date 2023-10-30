@@ -1,3 +1,17 @@
+## v0.9.0 (2023-10-30)
+
+### Feat
+
+- Add support for datetime and category index types
+
+### Fix
+
+- try again
+- try with pat
+- retry workflow fix
+- Fix broken workflow. Remove custom token
+- merge
+
 ## v0.8.1 (2023-10-30)
 
 ### Fix
