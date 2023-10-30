@@ -1,8 +1,43 @@
+import datetime
 from typing import Optional
 
+import numpy as np
 import pandas as pd
+import pytest
 
 from pandabear import DataFrame, DataFrameModel, Field, Index, check_schemas
+from pandabear.exceptions import SchemaValidationError
+
+#######
+
+CategoryABType = pd.CategoricalDtype(["a", "b"], ordered=True)
+
+
+class SpecificCategorySchema(DataFrameModel):
+    category: CategoryABType
+
+
+df = pd.DataFrame({"category": ["a", "a", "b", "b"]})
+
+SpecificCategorySchema.validate(df)
+
+raise Exception("success")
+
+#######
+
+
+class MySchema(DataFrameModel):
+    date: pd.DatetimeIndex
+    column_a: int
+
+
+df = pd.DataFrame(
+    data=[200],
+    columns=["column_a"],
+    index=pd.DatetimeIndex(["2020-01-01"], name="date")
+    # index=pd.Index([0], name='date')
+)
+MySchema.validate(df)
 
 
 class Coefficients(DataFrameModel):
@@ -15,7 +50,7 @@ class Coefficients(DataFrameModel):
     youtube,0.3
     """
 
-    index: Index[str] = Field(check_index_name=True)
+    index: Index[str] = Field(check_index_name=False)
     credit: float = Field(ge=0, coerce=True)
 
 
