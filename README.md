@@ -46,7 +46,9 @@ def foo(df: pb.DataFrame[InputDFSchema]) -> pb.DataFrame[OutputDFSchema]:
     return df
 ```
 
-Now, whenever `foo` is called, you can be sure that the data follows your predefined schemas at input and return. If it does not, an exception will be raised.
+Now, **whenever `foo` is called**, validation triggers and you can be sure that the data follows your predefined schemas at input and return. If it does not, an exception will be raised.
+
+*This package is heavily inspired by the [`pandera`](https://github.com/unionai-oss/pandera) Python package. Pandera is a fantastic Python library for statistical data testing, that offers a lot more functionality than `pandabear`. Consider this a lighter, `pandas`-only version of `pandera`. If you're looking for a more comprehensive solution that supports other backends than just `pandas` (like `spark`, `polars`, etc.), we highly recommend you check it out.*
 
 **See package level [README.md](src/pandabear/README.md) for documentation and usage examples**
 
