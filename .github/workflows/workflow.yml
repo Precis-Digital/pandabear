@@ -21,22 +21,21 @@ jobs:
         name: Bump and changelog using commitizen
         uses: commitizen-tools/commitizen-action@0.16.3
         with:
-          github_token: ${{ steps.get-github-app-token.outputs.token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - id: print-version
         name: Print Version
         run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
 
-
   build:
-    needs: bump_version  # Only runs after bump_version job completes successfully
+    needs: bump_version # Only runs after bump_version job completes successfully
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - name: Install dependencies
         run: pip install setuptools wheel twine
       - name: Build package
