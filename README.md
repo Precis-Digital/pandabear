@@ -1,13 +1,52 @@
 # pandabear
 
-A runtime schema validator for Pandas DataFrames.
-
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 ![Coverage](static/images/coverage-badge.svg)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
+A runtime schema validator for Pandas DataFrames.
+
+When you have a code that passes `pandas.DataFrame`s around, it can become difficult to keep track of the *state* of the data at any given point in the pipeline.
+
+### In a nutshell
+
+When you have a function like
+
+``` python
+def foo(df: pd.DataFrame) -> pd.DataFrame:
+    # change `df` somehow
+    return df
+```
+
+somewhere deep in your code, you can only know the state of `df` by running a debugger, or scrutinizing the code. This is especially true when you have a large codebase with many developers. `pandabear` solves this problem by allowing you to define schemas for your `pandas.DataFrame`s, and validate them at runtime. This way, you can be sure that the `pandas.DataFrame` you're passing around is in the state you expect it to be.
+
+## Example
+
+```python
+import pandas as pd
+import pandabear as pb
+
+# define your input and output schemas
+class InputDFSchema(pb.DataFrameModel):
+    col1: int
+    col2: str
+    col3: float = pb.Field(gt=0)
+
+class OutputDFSchema(pb.DataFrameModel):
+    col1: int
+    col3: float = pb.Field(lt=0)
+
+# decorate your function with `check_schemas` and pass the schemas to your function as type hints.
+@pb.check_schemas
+def foo(df: pb.DataFrame[InputDFSchema]) -> pb.DataFrame[OutputDFSchema]:
+    df = df.drop('col2', axis=1)
+    df.col3 *= -1
+    return df
+```
+
+Now, whenever `foo` is called, you can be sure that the data follows your predefined schemas at input and return. If it does not, an exception will be raised.
 
 **See package level [README.md](src/pandabear/README.md) for documentation and usage examples**
 
@@ -17,7 +56,7 @@ A runtime schema validator for Pandas DataFrames.
 ### Installation
 - Install globally or to a given environment:
     - Activate virtual environment (optional)
-    - `pip install pandabear``
+    - `pip install pandabear`
 
 ## Prerequisites:
 - [python](https://www.python.org/downloadss/) and virtual environment manager of your choice
