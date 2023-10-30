@@ -1,9 +1,9 @@
 import dataclasses
-from typing import Any, NamedTuple, Type
+from typing import Any, NamedTuple, Type, Union
 
 import pandas as pd
 
-from pandabear.exceptions import SchemaDefinitionError
+from pandabear.exceptions import SchemaDefinitionError, UnsupportedTypeError
 
 PANDAS_INDEX_TYPES = [
     # pd.DatetimeIndex
@@ -115,19 +115,28 @@ class FieldInfo(NamedTuple):
 
 
 def is_type_index_wrapped(typ):
+    """Check whether type annotation is like `Index[<type>]`."""
     return hasattr(typ, "__args__") and typ.__args__[0] is Index
 
 
 def is_type_index(typ, name, class_name):
+    # Field is like `index: Index` (not allowed)
     if typ is Index:
         raise SchemaDefinitionError(
             f"Index column `{name}` in schema `{class_name}` must be defined as `Index[<type>]`"
         )
-    return is_type_index_wrapped(typ) or typ in PANDAS_INDEX_TYPES
+    # Field is like `index: Index[int]`
+    if is_type_index_wrapped(typ):
+        return True
+    # Field is like `index: pd.DatetimeIndex` or other subclass of `pd.Index`
+    if issubclass(typ, pd.Index):
+        return True
+
+    # The user has provided something that is not meant as an index
+    return False
 
 
 def get_index_type(typ):
-
     if is_type_index_wrapped(typ):
         return typ.__args__[1]
     return typ

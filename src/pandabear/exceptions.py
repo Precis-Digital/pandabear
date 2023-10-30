@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, Type
 
 import pandas as pd
 
@@ -36,6 +36,16 @@ class SchemaDefinitionError(Exception):
     """Raise when `schema` is not a valid schema definition.
 
     This may happen if e.g. the user has a numerical check on a column with non-numerical values.
+    """
+
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class UnsupportedTypeError(Exception):
+    """Raise when a field is defined with a unsupported type.
+
+    This may happen when the user defines types that are not supported.
     """
 
     def __init__(self, message):
@@ -89,6 +99,34 @@ class ColumnCheckError(Exception):
         self.check_name = check_name
         self.check_value = check_value
         self.series = series
+        self.result = result
+        super().__init__(self._get_message())
+
+    def _get_message(self) -> str:
+        fail_series = self.series[~self.result]
+        total = len(self.series)
+        fails = len(fail_series)
+        fail_pc = int(round(100 * fails / total))
+        check_name = self.check_name.replace("series_", "")
+        text_msg = (
+            f"Column '{self.series.name}' failed check {check_name}({self.check_value}): "
+            f"{fails} of {total} ({fail_pc} %)"
+        )
+        fails_msg = fail_series.head(MAX_FAILURE_ROWS).to_string()
+        return f"{text_msg}\n{fails_msg}"
+
+
+class IndexCheckError(Exception):
+    """Raise when an index check fails checks defined in `Field` variable.
+
+    Report the percentage of rows that failed the check, and display the first
+    few rows that failed the check.
+    """
+
+    def __init__(self, check_name: str, check_value: Any, index: Type[pd.Index], result: pd.Series):
+        self.check_name = check_name
+        self.check_value = check_value
+        self.series = index.to_series()
         self.result = result
         super().__init__(self._get_message())
 

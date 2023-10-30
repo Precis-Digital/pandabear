@@ -17,14 +17,16 @@ def test_strict_filter_ordered_columns():
         filter: bool = True
 
     MySchema.Config = FilterConfig
+    MySchema.Config = MySchema._get_config()
+    MySchema.schema_map = MySchema._get_schema_map()
     df = pd.DataFrame(dict(a=[1], b=[1.0], c=["a"], d=[1]))
-    dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+    dfval = MySchema._validate_columns(df)
     assert dfval.shape == (1, 3)
     assert dfval.columns.tolist() == ["a", "b", "c"]
 
     # 2. column order is maintained
     df = pd.DataFrame(dict(b=[1.0], a=[1], d=[1], c=["a"]))
-    dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+    dfval = MySchema._validate_columns(df)
     assert dfval.shape == (1, 3)
     assert dfval.columns.tolist() == ["b", "a", "c"]
 
@@ -34,8 +36,9 @@ def test_strict_filter_ordered_columns():
         strict: bool = True
 
     MySchema.Config = FilterConfig
+    MySchema.Config = MySchema._get_config()
     df = pd.DataFrame(dict(b=[1.0], a=[1], d=[1], c=["a"]))
-    dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+    dfval = MySchema._validate_columns(df)
     assert dfval.columns.tolist() == ["b", "a", "c"]
 
     # 4. Changing filter to false, strict will now take effect, and fail:
@@ -44,9 +47,10 @@ def test_strict_filter_ordered_columns():
         strict: bool = True
 
     MySchema.Config = FilterConfig
+    MySchema.Config = MySchema._get_config()
     df = pd.DataFrame(dict(b=[1.0], a=[1], d=[1], c=["a"]))
     with pytest.raises(SchemaValidationError):
-        dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+        dfval = MySchema._validate_columns(df)
 
     # 5. changing to ordered == true, will now fail
     class FilterConfig:
@@ -55,9 +59,10 @@ def test_strict_filter_ordered_columns():
         ordered: bool = True
 
     MySchema.Config = FilterConfig
+    MySchema.Config = MySchema._get_config()
     df = pd.DataFrame(dict(b=[1.0], a=[1], c=["a"]))
     with pytest.raises(SchemaValidationError):
-        dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+        dfval = MySchema._validate_columns(df)
 
     # 6. changing to filter == true, will still fail
     class FilterConfig:
@@ -66,11 +71,12 @@ def test_strict_filter_ordered_columns():
         ordered: bool = True
 
     MySchema.Config = FilterConfig
+    MySchema.Config = MySchema._get_config()
     df = pd.DataFrame(dict(b=[1.0], a=[1], c=["a"]))
     with pytest.raises(SchemaValidationError):
-        dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+        dfval = MySchema._validate_columns(df)
 
     # 7. missing column will fail on filter
     df = pd.DataFrame(dict(b=[1.0], a=[1]))
     with pytest.raises(MissingColumnsError):
-        dfval = MySchema._validate_columns(df, MySchema._get_schema_map(), MySchema._get_config())
+        dfval = MySchema._validate_columns(df)
