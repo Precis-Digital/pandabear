@@ -1,3 +1,9 @@
+## v0.9.2 (2023-10-30)
+
+### Fix
+
+- fix publish workflow being triggered twice
+
 ## v0.9.1 (2023-10-30)
 
 ### Fix
