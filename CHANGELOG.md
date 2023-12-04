@@ -1,3 +1,9 @@
+## v0.9.3 (2023-12-04)
+
+### Fix
+
+- Relax numpy version requirement
+
 ## v0.9.2 (2023-10-30)
 
 ### Fix
