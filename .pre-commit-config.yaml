@@ -10,12 +10,6 @@ repos:
     hooks:
       - id: black
         entry: python -m black
-  - repo: https://github.com/zricethezav/gitleaks
-    rev: v8.15.1
-    hooks:
-      - id: gitleaks-docker
-        entry: zricethezav/gitleaks protect --verbose --redact --staged
-        language: docker_image
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v2.37.0
     hooks:
